@@ -1,0 +1,10 @@
+#!/usr/bin/zsh
+
+alias ls='ls --color=auto'
+alias ll='ls -l'
+alias la='ls -lA'
+alias v=vim
+alias vim=nvim
+alias cd..='cd ..'
+
+alias dotfiles='git --git-dir=$HOME/dotfiles --work-tree=$HOME'
