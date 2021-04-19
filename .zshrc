@@ -37,8 +37,10 @@ source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zs
 source /usr/share/autojump/autojump.zsh 2>/dev/null
 
 export PATH=~/.emacs.d/bin:$PATH
+export PATH=$PATH:/home/juan/.config/coc/extensions/coc-clangd-data/install/11.0.0/clangd_11.0.0/bin
 
 source ~/powerlevel10k/powerlevel10k.zsh-theme
 
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+source /usr/share/nvm/init-nvm.sh

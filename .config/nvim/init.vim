@@ -1,26 +1,18 @@
-"  ____ _____ 
-" |  _ \_   _|  Derek Taylor (DistroTube)
-" | | | || |    http://www.youtube.com/c/DistroTube
-" | |_| || |    http://www.gitlab.com/dwt1/
-" |____/ |_|
-"        
-" A customized init.vim for neovim (https://neovim.io/)     
-
 set nocompatible              " be iMproved, required
 filetype off                  " required
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => Vundle For Managing Plugins
+" => vim-plug For Managing Plugins
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 call plug#begin('~/.vim/plugged')
 
 "{{ The Basics }}
-    Plug 'gmarik/Vundle.vim'                           " Vundle
     Plug 'itchyny/lightline.vim'                       " Lightline statusbar
     Plug 'suan/vim-instant-markdown', {'rtp': 'after'} " Markdown Preview
     Plug 'frazrepo/vim-rainbow'
 	Plug 'hecal3/vim-leader-guide'
+	Plug 'neoclide/coc.nvim', {'branch': 'release'}
 "{{ File management }}
     Plug 'vifm/vifm.vim'                               " Vifm
     Plug 'scrooloose/nerdtree'                         " Nerdtree
@@ -75,6 +67,18 @@ let g:rehash256 = 1
 
 let mapleader = "\<Space>"
 colorscheme dracula
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Coc config
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+let g:coc_global_extensions = [
+	\ 'coc-pairs',
+	\ 'coc-sh',
+	\ 'coc-json', 
+	\ 'coc-clangd', 
+	\ 'coc-css',
+	\ ]
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Remap Keys
