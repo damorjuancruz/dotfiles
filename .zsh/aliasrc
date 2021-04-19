@@ -8,3 +8,5 @@ alias vim=nvim
 alias cd..='cd ..'
 
 alias dotfiles='git --git-dir=$HOME/dotfiles --work-tree=$HOME'
+
+alias rm=trash
