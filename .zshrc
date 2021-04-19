@@ -36,8 +36,6 @@ source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh 2>/dev
 source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
 source /usr/share/autojump/autojump.zsh 2>/dev/null
 
-source ~/powerlevel10k/powerlevel10k.zsh-theme
-
 export PATH=~/.emacs.d/bin:$PATH
 
 source ~/powerlevel10k/powerlevel10k.zsh-theme
