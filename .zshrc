@@ -83,6 +83,9 @@ bindkey '^ ' autosuggest-accept
 export PATH=~/.emacs.d/bin:$PATH #doom command
 export PATH=$PATH:/home/juan/.config/coc/extensions/coc-clangd-data/install/11.0.0/clangd_11.0.0/bin # neoclide/coc.nvim requires this for C/C++
 
+##### BROOT #####
+source /home/juan/.config/broot/launcher/bash/br
+
 ##### POWERLEVEL10K #####
 # To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
 source ~/powerlevel10k/powerlevel10k.zsh-theme
