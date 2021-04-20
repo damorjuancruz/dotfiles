@@ -3,7 +3,7 @@
 # emacs (daemon running)
 # powerlevel10k
 # autojump
-# nvm
+# fvm
 # shell-color-scripts
 
 ##### RUN COLORSCRIPT ON STARTUP #####
@@ -63,5 +63,6 @@ export PATH=$PATH:/home/juan/.config/coc/extensions/coc-clangd-data/install/11.0
 source ~/powerlevel10k/powerlevel10k.zsh-theme
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-##### BROOT #####
-source /home/juan/.config/broot/launcher/bash/br
+##### FNM #####
+export PATH=/home/juan/.fnm:$PATH
+eval "`fnm env`"
