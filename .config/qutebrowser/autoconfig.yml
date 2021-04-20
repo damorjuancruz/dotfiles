@@ -11,7 +11,6 @@ settings:
   bindings.commands:
     global:
       normal:
-        H: back
         J: scroll left
         K: scroll right
         gJ: null
@@ -20,32 +19,15 @@ settings:
         gl: tab-move +
         gm: null
         h: tab-prev
-        j: scroll down
-        k: scroll up
         l: tab-next
-  content.blocking.enabled:
-    global: false
-  content.desktop_capture:
-    https://meet.google.com: true
-  content.geolocation:
-    https://www.google.com: true
-  content.media.audio_capture:
-    https://meet.google.com: true
   content.notifications.enabled:
-    https://calendar.google.com: true
-    https://meet.google.com: true
-    https://www.reddit.com: false
-    https://www.tradingview.com: true
     https://www.youtube.com: false
-  content.register_protocol_handler:
-    https://calendar.google.com?cid=%25s: true
-    https://mail.google.com?extsrc=mailto&url=%25s: true
   input.insert_mode.auto_leave:
     global: false
   input.insert_mode.auto_load:
     global: true
   url.default_page:
-    global: https://www.google.com/
+    global: https://www.google.com
   url.searchengines:
     global:
       DEFAULT: https://www.google.com/search?q={}
