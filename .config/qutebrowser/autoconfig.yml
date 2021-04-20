@@ -31,10 +31,11 @@ settings:
     https://www.google.com: true
   content.media.audio_capture:
     https://meet.google.com: true
-  content.notifications:
+  content.notifications.enabled:
     https://calendar.google.com: true
     https://meet.google.com: true
     https://www.reddit.com: false
+    https://www.tradingview.com: true
     https://www.youtube.com: false
   content.register_protocol_handler:
     https://calendar.google.com?cid=%25s: true
