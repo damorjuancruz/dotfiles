@@ -20,8 +20,13 @@ settings:
         gm: null
         h: tab-prev
         l: tab-next
+  content.media.audio_capture:
+    https://meet.google.com: true
   content.notifications.enabled:
+    https://calendar.google.com: false
     https://www.youtube.com: false
+  content.register_protocol_handler:
+    https://calendar.google.com?cid=%25s: false
   input.insert_mode.auto_leave:
     global: false
   input.insert_mode.auto_load:
