@@ -411,7 +411,7 @@ def init_widgets_list():
             display_format = "{updates} Updates",
             no_update_string = "Up to date",
             foreground = colors[2],
-            execute = myTerm + ' -e yay -Syu',
+            execute = myTerm + ' -e paru',
             background = colors[4]
         ),
         widget.TextBox(
