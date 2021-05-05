@@ -3,10 +3,9 @@
 ##### DEPENDENCIES #####
 # neovim
 # emacs
-# broot
 # exa
 # trash-cli
-#
+# almost on top
 
 ##### VIM AND EMACS #####
 alias v=vim
@@ -16,10 +15,6 @@ alias emacs="emacsclient -c"
 
 ##### CD #####
 alias cd..='cd ..'
-
-##### BROOT #####
-alias br='broot -dhp'
-alias bs='broot --sizes'
 
 ##### LS TO EXA #####
 alias ls='exa -al --color=always --group-directories-first' # my preferred listing
@@ -39,7 +34,12 @@ alias fgrep='fgrep --color=auto'
 ##### CONFIRM BEFORE OVERWRITING SOMETHING #####
 alias cp="cp -i"
 alias mv='mv -i'
+
+##### TRASH-CLI #####
 alias rm=trash
+
+##### ALMOST ON TOP #####
+alias at=almostontop_toggle
 
 ##### ADDING FLAGS #####
 alias df='df -h'                          # human-readable sizes

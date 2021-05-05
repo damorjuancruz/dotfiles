@@ -2,9 +2,11 @@
 # neovim
 # emacs (daemon running)
 # powerlevel10k
-# autojump
 # fvm
 # shell-color-scripts
+# zoxide
+# fzf
+# thefuck
 
 ##### RUN COLORSCRIPT ON STARTUP #####
 colorscript random
@@ -44,19 +46,41 @@ fi
 ##### VARIABLES #####
 export TERM=xterm-256color
 export EDITOR=nvim
-export VISUAL='emacsclient -c'
+#export VISUAL='emacsclient -c'
 export MANPAGER="nvim -c 'set ft=man' -" # "nvim" as manpager
 
 ##### ZSH PLUGINS #####
-source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
-source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source /usr/share/autojump/autojump.zsh
-source /usr/share/doc/pkgfile/command-not-found.zsh
+source ~/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh
+source ~/.zsh/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh
+source ~/.zsh/zsh-command-not-found/command-not-found.plugin.zsh
+source ~/.zsh/alias-tips/alias-tips.plugin.zsh
+source ~/.zsh/almostontop/almostontop.plugin.zsh
+source ~/.zsh/zsh-auto-notify/auto-notify.plugin.zsh
+source ~/.zsh/zsh-vi-mode/zsh-vi-mode.plugin.zsh
+eval "$(zoxide init zsh)"
+eval $(thefuck --alias)
 
 ##### ZSH OPTIONS #####
 setopt correct
-setopt autocd
+setopt autocd # if a command is issued that can't be executed as a normal command, and the command is the name of a directory, perform the cd command to that directory.
 setopt noclobber
+setopt noflowcontrol # no c-s/c-q output freezing
+setopt prompt_subst # allow expansion in prompts
+setopt extended_history # save each command's beginning timestamp and the duration to the history file
+setopt longlistjobs # display PID when suspending processes as well
+setopt nonomatch # try to avoid the 'zsh: no matches found...'
+setopt notify # report the status of backgrounds jobs immediately
+setopt hash_list_all # whenever a command completion is attempted, make sure the entire command path is hashed first.
+setopt completeinword # not just at the end
+setopt noshwordsplit # use zsh style word splitting
+setopt interactivecomments # allow use of comments in interactive code
+setopt share_history # import new commands from the history file also in other zsh-session
+setopt histignorealldups # If a new command line being added to the history list duplicates an older one, the older command is removed from the list
+setopt histignorespace # remove command lines from the history list when the first character on the line is a space
+typeset -U path cdpath fpath manpath # automatically remove duplicates from these arrays
+
+##### PLUGIN OPTIONS #####
+export ZSH_PLUGINS_ALIAS_TIPS_TEXT="💡 "
 
 ##### HISTORY #####
 HISTSIZE=10000000
@@ -74,14 +98,14 @@ compinit
 _comp_options+=(globdots) # Include hidden files.
 
 ##### CUSTOM ZSH KEYBINDINGS #####
-bindkey -v #Vi mode
+#bindkey -v # Vi mode
 bindkey '^ ' autosuggest-accept
 
 ##### ALIASES #####
 [ -f "$HOME/.zsh/aliasrc" ] && source "$HOME/.zsh/aliasrc"
 
 ##### PATH #####
-export PATH=~/.emacs.d/bin:$PATH #doom command
+export PATH=~/.emacs.d/bin:$PATH # doom command
 export PATH=$PATH:/home/juan/.config/coc/extensions/coc-clangd-data/install/11.0.0/clangd_11.0.0/bin # neoclide/coc.nvim requires this for C/C++
 
 ##### BROOT #####
