@@ -551,8 +551,8 @@ def assign_app_group(client):
     d["1"] = ["Firefox", "Google-chrome", "Qutebrowser",
               "firefox", "google-chrome", "qutebrowser", ]
 
-    d["2"] = [ "Code", "Emacs",
-               "code", "emacs", ]
+    d["2"] = [ "Code", "Emacs", "Unity", "UnityHub",
+               "code", "emacs", "unity", "unityhub", ]
 
     d["3"] = ["Alacritty", "Kitty", "Konsole", "Xterm",
               "alacritty", "kitty", "konsole", "xterm", ]
