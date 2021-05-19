@@ -55,7 +55,6 @@ source ~/.zsh/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh
 source ~/.zsh/zsh-command-not-found/command-not-found.plugin.zsh
 source ~/.zsh/alias-tips/alias-tips.plugin.zsh
 source ~/.zsh/almostontop/almostontop.plugin.zsh
-source ~/.zsh/zsh-auto-notify/auto-notify.plugin.zsh
 source ~/.zsh/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 eval "$(zoxide init zsh)"
 eval $(thefuck --alias)
