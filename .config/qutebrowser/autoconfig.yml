@@ -20,13 +20,20 @@ settings:
         gm: null
         h: tab-prev
         l: tab-next
+  content.desktop_capture:
+    https://meet.google.com: true
+  content.geolocation:
+    https://www.google.com: true
   content.media.audio_capture:
     https://meet.google.com: true
   content.notifications.enabled:
+    global: false
     https://calendar.google.com: false
+    https://www.tradingview.com: true
     https://www.youtube.com: false
   content.register_protocol_handler:
     https://calendar.google.com?cid=%25s: false
+    https://mail.google.com?extsrc=mailto&url=%25s: true
   input.insert_mode.auto_leave:
     global: false
   input.insert_mode.auto_load:
