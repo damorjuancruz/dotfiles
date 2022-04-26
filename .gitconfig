@@ -1,0 +1,9 @@
+[alias]
+	ac = "!git add -A && git commit -m"
+	backup = "!git add -A && git commit -m 'backup' && git push"
+	graph = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
+[user]
+	email = damorjuancruz@gmail.com
+	name = "Juan Cruz D'Amor"
+[init]
+	defaultBranch = main
