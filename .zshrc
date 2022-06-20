@@ -6,13 +6,13 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 # The following lines were added by compinstall
-
 zstyle ':completion:*' completer _complete _ignored _correct _approximate
 zstyle :compinstall filename '/home/juan/.zshrc'
 
 autoload -Uz compinit
 compinit
 # End of lines added by compinstall
+
 # Lines configured by zsh-newuser-install
 HISTFILE=~/.histfile
 HISTSIZE=1000
@@ -21,17 +21,15 @@ setopt autocd
 unsetopt beep
 # End of lines configured by zsh-newuser-install
 
+# Enviroment Variables
+export EDITOR="nvim"
+export N_PREFIX="$HOME/n"; [[ :$PATH: == *":$N_PREFIX/bin:"* ]] || PATH+=":$N_PREFIX/bin"  # Added by n-install (see http://git.io/n-install-repo).
+
 # Custom aliases
 source ~/.aliasrc
 
 # Plugins
-# source ~/.zsh/......
-
-# Enviroment Variables
-export EDITOR="nvim"
-
-export N_PREFIX="$HOME/n"; [[ :$PATH: == *":$N_PREFIX/bin:"* ]] || PATH+=":$N_PREFIX/bin"  # Added by n-install (see http://git.io/n-install-repo).
-
+source ~/.zsh/zsh-vi-mode/zsh-vi-mode.plugin.zsh
 
 source ~/powerlevel10k/powerlevel10k.zsh-theme
 
