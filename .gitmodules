@@ -1,3 +1,6 @@
 [submodule ".zsh/zsh-vi-mode"]
 	path = .zsh/zsh-vi-mode
 	url = https://github.com/jeffreytse/zsh-vi-mode
+[submodule ".config/nvim/vim-plug"]
+	path = .config/nvim/vim-plug
+	url = https://github.com/junegunn/vim-plug.git
