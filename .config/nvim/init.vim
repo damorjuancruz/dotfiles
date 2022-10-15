@@ -1,4 +1,10 @@
-set clipboard=unnamedplus
+source ~/.vimrc
+
+set number
+
+set tabstop=2
+set shiftwidth=2
+set expandtab
 
 " vim-plug
 call plug#begin()
@@ -7,19 +13,15 @@ call plug#begin()
   Plug 'drewtempelmeyer/palenight.vim'
 call plug#end()
 
+" Theming
 if (has("termguicolors"))
   set termguicolors
   set background=dark
   colorscheme palenight
 endif
 
-set tabstop=2
-set shiftwidth=2
-set expandtab
-
-let &fcs='eob: '
-set number
-set noshowmode
+set noshowmode " hide the mode as it's already shown by lualine
+let &fcs='eob: ' " hide the ~ on empty lines
 
 lua << END
 require('lualine').setup {
