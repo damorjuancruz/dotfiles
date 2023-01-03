@@ -1,5 +1,6 @@
 [alias]
 	ac = "!git add -A && git commit -m"
+	fac = "!npm run format && git add -A && git commit -m"
 	backup = "!git add -A && git commit -m 'backup' && git push"
 	graph = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
 [user]

@@ -11,6 +11,7 @@ call plug#begin()
   Plug 'nvim-lualine/lualine.nvim'
   Plug 'kyazdani42/nvim-web-devicons'
   Plug 'drewtempelmeyer/palenight.vim'
+  Plug 'glacambre/firenvim', { 'do': { _ -> firenvim#install(0) } }
 call plug#end()
 
 " Theming

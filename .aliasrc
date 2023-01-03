@@ -26,8 +26,8 @@ alias mv="mv -i"
 alias paru-r="paru -Rns"
 alias paru-c="paru -Rns \$(paru -Qdtq)"
 
-##### RELOAD ZSH CONFIG #####
-alias sz="source ~/.zshrc"
+##### EMACS #####
+alias e="emacsclient -c -a 'emacs'"
 
 ##### FUNCTION EXTRACT FOR COMMON FILE FORMATS #####
 SAVEIFS=$IFS
@@ -72,3 +72,6 @@ fi
 
 IFS=$SAVEIFS
 
+function gccr {
+  gcc "$1" && ./a.out && rm ./a.out
+}
