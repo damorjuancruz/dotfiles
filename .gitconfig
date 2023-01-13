@@ -2,9 +2,14 @@
 	ac = "!git add -A && git commit -m"
 	fac = "!npm run format && git add -A && git commit -m"
 	backup = "!git add -A && git commit -m 'backup' && git push"
+  raba = "rebase --committer-date-is-author-date"
 	graph = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
 [user]
 	email = damorjuancruz@gmail.com
 	name = "Juan Cruz D'Amor"
 [init]
 	defaultBranch = main
+[push]
+	autoSetupRemote = true
+[remote "origin"]
+	prune = true
