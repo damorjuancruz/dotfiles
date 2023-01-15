@@ -19,6 +19,12 @@
 - picom-jonaburg-git
 - vscode
 
+# Crontab
+
+```
+@daily $(which trash-empty) 30
+```
+
 # Display Manager
 
 Install `lightdm` package and enable it by running
