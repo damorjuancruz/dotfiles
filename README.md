@@ -1,23 +1,21 @@
 # Software I Use / Dependencies
 
-- cronie
-- trash-cli
+- paru (AUR)
+- alacritty
+- fish
+- pfetch (AUR)
 - exa
 - bat
-- alacritty
+- nvim
+- vscode (AUR)
 - firefox
+- cronie
+- trash-cli
+- awesome-git (AUR)
+- picom-jonaburg-git (AUR)
 - brightnesctl
 - pamixer
-- nvim
 - xclip
-
-## AUR
-
-- paru
-- pfetch
-- awesome-git
-- picom-jonaburg-git
-- vscode
 
 # Other Settings
 
@@ -27,7 +25,7 @@
 @daily $(which trash-empty) 30
 ```
 
-## /etc/X11/xorg.conf.d/10-monitor.conf:
+## /etc/X11/xorg.conf.d/10-monitor.conf
 
 ```
 Section "Monitor"
