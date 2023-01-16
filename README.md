@@ -1,4 +1,4 @@
-# My software
+# Software I Use / Dependencies
 
 - cronie
 - trash-cli
@@ -19,20 +19,15 @@
 - picom-jonaburg-git
 - vscode
 
-# Crontab
+# Other Settings
+
+## Crontab
 
 ```
 @daily $(which trash-empty) 30
 ```
 
-# Display Manager
-
-Install `lightdm` package and enable it by running
-`sudo systemctl enable lightdm`
-
-# System files
-
-/etc/X11/xorg.conf.d/10-monitor.conf:
+## /etc/X11/xorg.conf.d/10-monitor.conf:
 
 ```
 Section "Monitor"
@@ -46,5 +41,6 @@ Section "Monitor"
 EndSection
 ```
 
-/etc/pacman.conf
+## /etc/pacman.conf
+
 Uncomment `Color` and set `ParallelDownloads` to 10

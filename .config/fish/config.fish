@@ -1,4 +1,9 @@
 if status is-interactive
+  ### FISHER ###
+  if not functions -q fisher
+    curl -sL https://git.io/fisher | source && fisher update || fisher install jorgebucaran/fisher
+  end
+
   ### ALIASES ###
   # dotfiles repo
   alias dotfiles="/usr/bin/git --git-dir=$HOME/.dotfiles.git/ --work-tree=$HOME"
@@ -28,5 +33,9 @@ if status is-interactive
   end
 
   ### PROMPT ###
-  starship init fish | source
+  if type -q starship
+    starship init fish | source
+  else
+    curl -sS https://starship.rs/install.sh | sh && source ~/.config/fish/config.fish
+  end
 end
