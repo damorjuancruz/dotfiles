@@ -20,6 +20,14 @@
 
 # Other Settings
 
+## ssh-agent
+
+Enable ssh-agent (file located at `.config/systemd/user/ssh-agent.service`) by running
+
+```
+systemctl --user enable --now ssh-agent
+```
+
 ## Crontab
 
 ```
