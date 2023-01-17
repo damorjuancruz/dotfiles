@@ -6,7 +6,7 @@ if status is-interactive
 
   ### ALIASES ###
   # dotfiles repo
-  alias dotfiles="/usr/bin/git --git-dir=$HOME/.dotfiles.git/ --work-tree=$HOME"
+  alias dotfiles="git --git-dir=$HOME/.dotfiles.git/ --work-tree=$HOME"
   # cd
   alias cd..="cd .."
   # ls -> exa
