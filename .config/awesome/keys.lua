@@ -256,12 +256,12 @@ awful.keyboard.append_global_keybindings({
   -- Brightness keys
   awful.key(
     {}, "XF86MonBrightnessUp",
-    function() awful.spawn("brightnessctl set 5%+ -q", false) end,
+    function() awful.spawn("brightnessctl set 2.5%+ -q", false) end,
     { description = "increase brightness", group = "control" }
   ),
   awful.key(
     {}, "XF86MonBrightnessDown",
-    function() awful.spawn("brightnessctl set 5%- -q", false) end,
+    function() awful.spawn("brightnessctl set 2.5%- -q", false) end,
     { description = "decrease brightness", group = "control" }
   )
 })

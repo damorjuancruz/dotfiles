@@ -16,6 +16,7 @@
 - brightnesctl
 - pamixer
 - xclip
+- acpi
 
 # Other Settings
 
