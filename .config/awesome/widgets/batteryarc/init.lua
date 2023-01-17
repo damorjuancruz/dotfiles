@@ -55,18 +55,22 @@ local function worker(user_args)
 
   local text_with_background = wibox.container.background(text)
 
-  batteryarc_widget = wibox.widget {
-    text_with_background,
+  batteryarc_widget = wibox.container.mirror(wibox.widget {
+    wibox.container.mirror(text_with_background, {
+      horizontal = true
+    }),
     max_value = 100,
     rounded_edge = true,
     thickness = arc_thickness,
-    start_angle = 0, -- 2pi*3/4
+    start_angle = -1 * (math.pi / 2),
     forced_height = size,
     forced_width = size,
     bg = bg_color,
     paddings = 2,
     widget = wibox.container.arcchart
-  }
+  }, {
+    horizontal = true
+  })
 
   local last_battery_check = os.time()
 
@@ -100,7 +104,7 @@ local function worker(user_args)
       end
     end
 
-    widget.value = charge
+    widget.widget.value = charge
 
     if status == 'Charging' then
       text_with_background.bg = charging_color
@@ -120,7 +124,7 @@ local function worker(user_args)
     end
 
     if charge < 15 then
-      widget.colors = { low_level_color }
+      widget.widget.colors = { low_level_color }
       if enable_battery_warning and status ~= 'Charging' and os.difftime(os.time(), last_battery_check) > 300 then
         -- if 5 minutes have elapsed since the last warning
         last_battery_check = os.time()
@@ -128,9 +132,9 @@ local function worker(user_args)
         show_battery_warning()
       end
     elseif charge > 15 and charge < 40 then
-      widget.colors = { medium_level_color }
+      widget.widget.colors = { medium_level_color }
     else
-      widget.colors = { main_color }
+      widget.widget.colors = { main_color }
     end
   end
 
