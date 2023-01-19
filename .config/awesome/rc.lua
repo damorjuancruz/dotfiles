@@ -14,10 +14,6 @@ local dpi = beautiful.xresources.apply_dpi
 -- Notification library
 local naughty = require("naughty")
 local menubar = require("menubar")
-local hotkeys_popup = require("awful.hotkeys_popup")
--- Enable hotkeys help widget for VIM and other apps
--- when client with a matching name is opened:
-require("awful.hotkeys_popup.keys")
 
 -- {{{ Error handling
 -- Check if awesome encountered an error during startup and fell back to
@@ -82,23 +78,6 @@ awful.layout.layouts = {
 -- }}}
 
 -- {{{ Menu
--- Create a launcher widget and a main menu
-myawesomemenu = {
-  { "hotkeys", function() hotkeys_popup.show_help(nil, awful.screen.focused()) end },
-  { "manual", terminal .. " -e man awesome" },
-  { "edit config", editor_cmd .. " " .. awesome.conffile },
-  { "restart", awesome.restart },
-  { "quit", function() awesome.quit() end },
-}
-
-mymainmenu = awful.menu({ items = { { "awesome", myawesomemenu, beautiful.awesome_icon },
-  { "open terminal", terminal }
-}
-})
-
-mylauncher = awful.widget.launcher({ image = beautiful.awesome_icon,
-  menu = mymainmenu })
-
 -- Menubar configuration
 menubar.utils.terminal = terminal -- Set the terminal for applications that require it
 -- }}}
@@ -112,20 +91,39 @@ mytextclock = wibox.widget.textclock()
 
 -- Create a wibox for each screen and add it
 local taglist_buttons = gears.table.join(
-  awful.button({}, 1, function(t) t:view_only() end),
-  awful.button({ modkey }, 1, function(t)
-    if client.focus then
-      client.focus:move_to_tag(t)
+  awful.button(
+    {}, 1, -- left click
+    function(t) t:view_only() end-- view tag only
+  ),
+  awful.button(
+    { modkey }, 1, -- mod + left click
+    function(t)
+      if client.focus then
+        client.focus:move_to_tag(t) -- move focused client to tag
+      end
     end
-  end),
-  awful.button({}, 3, awful.tag.viewtoggle),
-  awful.button({ modkey }, 3, function(t)
-    if client.focus then
-      client.focus:toggle_tag(t)
+  ),
+  awful.button(
+    {}, 3, -- right click
+    awful.tag.viewtoggle-- view tag toggle
+  ),
+  awful.button(
+    { modkey }, 3, -- mod + right click
+    function(t)
+      if client.focus then
+        client.focus:toggle_tag(t) -- toggle focused client on tag
+      end
     end
-  end),
-  awful.button({}, 4, function(t) awful.tag.viewnext(t.screen) end),
-  awful.button({}, 5, function(t) awful.tag.viewprev(t.screen) end)
+  ),
+  -- scroll through tags
+  awful.button(
+    {}, 4,
+    function(t) awful.tag.viewnext(t.screen) end
+  ),
+  awful.button(
+    {}, 5,
+    function(t) awful.tag.viewprev(t.screen) end
+  )
 )
 
 local function set_wallpaper(s)
@@ -148,7 +146,7 @@ awful.screen.connect_for_each_screen(function(s)
   set_wallpaper(s)
 
   -- Each screen has its own tag table.
-  awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
+  awful.tag({ "WWW", "DEV", "TTY", "COM", "ETC" }, s, awful.layout.layouts[1])
 
   -- Create a promptbox for each screen
   s.mypromptbox = awful.widget.prompt()
@@ -193,7 +191,6 @@ awful.screen.connect_for_each_screen(function(s)
     layout = wibox.layout.align.horizontal,
     { -- Left widgets
       layout = wibox.layout.fixed.horizontal,
-      mylauncher,
       s.mytaglist,
       s.mypromptbox,
     },
@@ -204,7 +201,7 @@ awful.screen.connect_for_each_screen(function(s)
       wibox.widget.systray(),
       batteryarc_widget({
         show_current_level = true,
-        font = "Nunito Bold 6"
+        font = "Nunito, Bold, 6"
       }),
       mytextclock,
       s.mylayoutbox,
@@ -291,12 +288,15 @@ local function run(command, pidof)
     findme = command:sub(0, firstspace - 1)
   end
 
-  awful.spawn.easy_async_with_shell(string.format('/bin/sh -c "pgrep -u $USER -x %s > /dev/null || (%s)"',
+  awful.spawn.easy_async_with_shell(string.format('/bin/sh -c "pgrep -u $USER -x %s > /dev/null || (%s &)"',
     pidof or findme, command))
 end
 
 local applications = {
-  "picom --experimental-backends &",
+  "picom",
+  "telegram-desktop",
+  "discord",
+  "firefox",
 }
 
 for _, prc in ipairs(applications) do
