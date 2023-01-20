@@ -17,6 +17,7 @@
 - pamixer
 - xclip
 - acpi
+- docker & docker-compose
 
 # Other Settings
 
