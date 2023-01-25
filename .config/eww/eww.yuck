@@ -1,0 +1,53 @@
+(deflisten workspaces :initial "[]" "bash ./scripts/get-workspaces")
+(deflisten current_workspace :initial "1" "bash ./scripts/get-active-workspace")
+(defwidget workspaces []
+  (eventbox
+    :onscroll "bash ~/.config/eww/scripts/change-active-workspace {} ${current_workspace}"
+    :class "workspaces-widget"
+    (box :space-evenly false
+      (for workspace in workspaces
+        (eventbox :onclick "hyprctl dispatch workspace ${workspace.id}"
+          (box :class "bar-widget ${workspace.id == current_workspace ? "current" : ""} ${workspace.windows > 0 ? "occupied" : "empty"}"
+            (label :text "${workspace.id}")
+            )
+          )
+        )
+      )
+    )
+  )
+(defwidget battery []
+  (label
+    :space-evenly false
+    :halign "end"
+    :class "bar-widget"
+    :text "${EWW_BATTERY["BAT0"].capacity}%")
+)
+
+(defpoll time :interval "1s" "date '+%d/%m/%y %H:%M:%Shs'")
+(defwidget clock []
+  (label
+    :class "bar-widget"
+    :text time)
+)
+
+(defwidget bar []
+  (centerbox
+    :orientation "h"
+    :class "bar"
+    (workspaces)
+    (clock)
+    (battery)))
+
+(
+  defwindow bar
+  :monitor 1
+  :geometry (geometry
+    :y "12px"
+    :width "${2560 - 12*2}px"
+    :height "32px"
+    :anchor "top center"
+  )
+  :stacking "fg"
+  :exclusive true
+  (bar)
+)

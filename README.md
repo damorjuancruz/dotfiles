@@ -18,6 +18,20 @@
 - xclip
 - acpi
 - docker & docker-compose
+- sddm-git (AUR)
+- rate-mirrors (AUR)
+- pacman-contrib
+
+- hyprland (AUR)
+- wofi
+- pipewire
+- polkit-kde-agent
+- qt5-wayland & qt6-wayland
+- xdg-desktop-portal-hyprland-git (AUR, -gtk implementation)
+- wlr-randr (AUR)
+- eww-wayland (AUR)
+- socat
+- jq
 
 # Other Settings
 
