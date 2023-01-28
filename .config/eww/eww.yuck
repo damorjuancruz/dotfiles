@@ -1,29 +1,13 @@
-(deflisten workspaces :initial "[]" "bash ./scripts/get-workspaces")
-(deflisten current_workspace :initial "1" "bash ./scripts/get-active-workspace")
-(defwidget workspaces []
-  (eventbox
-    :onscroll "bash ~/.config/eww/scripts/change-active-workspace {} ${current_workspace}"
-    :class "workspaces-widget"
-    (box :space-evenly false
-      (for workspace in workspaces
-        (eventbox :onclick "hyprctl dispatch workspace ${workspace.id}"
-          (box :class "bar-widget ${workspace.id == current_workspace ? "current" : ""} ${workspace.windows > 0 ? "occupied" : "empty"}"
-            (label :text "${workspace.id}")
-            )
-          )
-        )
-      )
-    )
-  )
+(deflisten workspaces	"~/.config/eww/scripts/get-workspaces.py")
+
 (defwidget battery []
   (label
-    :space-evenly false
     :halign "end"
     :class "bar-widget"
     :text "${EWW_BATTERY["BAT0"].capacity}%")
 )
 
-(defpoll time :interval "1s" "date '+%d/%m/%y %H:%M:%Shs'")
+(defpoll time :interval "1s" "date '+%F %H:%M'")
 (defwidget clock []
   (label
     :class "bar-widget"
@@ -34,7 +18,7 @@
   (centerbox
     :orientation "h"
     :class "bar"
-    (workspaces)
+    (literal :content "${workspaces}")
     (clock)
     (battery)))
 

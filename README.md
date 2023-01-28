@@ -1,4 +1,4 @@
-# Software I Use / Dependencies
+# Software / Dependencies
 
 - paru (AUR)
 - alacritty
@@ -18,22 +18,41 @@
 - xclip
 - acpi
 - docker & docker-compose
-- sddm-git (AUR)
+- ly (AUR)
 - rate-mirrors (AUR)
 - pacman-contrib
+- tldr
 
 - hyprland (AUR)
+- hyprpaper-git (AUR)
 - wofi
 - pipewire
 - polkit-kde-agent
 - qt5-wayland & qt6-wayland
 - xdg-desktop-portal-hyprland-git (AUR, -gtk implementation)
 - wlr-randr (AUR)
+- wev (AUR)
 - eww-wayland (AUR)
-- socat
-- jq
+- webcord (AUR, install electron manually)
 
 # Other Settings
+
+## /etc/ly/config.ini
+
+```diff
+- #blank_password = true
++ #blank_password = true
+```
+
+## Wrapped Hyprland Wayland session
+
+```
+[Desktop Entry]
+Name=Wrapped Hyprland
+Comment=An intelligent dynamic tiling Wayland compositor
+Exec=/home/juan/.config/hypr/wrapped-hyprland
+Type=Application
+```
 
 ## ssh-agent
 
@@ -47,6 +66,16 @@ systemctl --user enable --now ssh-agent
 
 ```
 @daily $(which trash-empty) 30
+```
+
+## /etc/pacman.conf
+
+```diff
+- # Color
++ # Color
+
+- # ParallelDownloads = 5
++ ParallelDownloads = 10
 ```
 
 ## /etc/X11/xorg.conf.d/10-monitor.conf
@@ -74,7 +103,3 @@ Section "InputClass"
 	Option "AccelSpeed" "-1"
 EndSection
 ```
-
-## /etc/pacman.conf
-
-Uncomment `Color` and set `ParallelDownloads` to 10

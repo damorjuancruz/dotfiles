@@ -8,7 +8,24 @@
 
 .bar-widget {
   background-color: #5c6370;
-  border-radius: 4px;
-  padding: 4px;
-  margin: 0px 4px;
+  border-radius: 8px;
+  padding: 4px 6px;
+}
+
+.workspaces-widget {
+  .workspace-entry {
+    border-radius: 6px;
+    padding: 4px 6px;
+    margin: 0px 2px;
+
+    &.empty {
+      color: #5c6370;
+    }
+    &.primary {
+      background-color: #61afef;
+    }
+    &.secondary {
+      background-color: #5c6370;
+    }
+  }
 }

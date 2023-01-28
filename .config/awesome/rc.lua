@@ -189,21 +189,29 @@ awful.screen.connect_for_each_screen(function(s)
   -- Add widgets to the wibox
   s.mywibox:setup {
     layout = wibox.layout.align.horizontal,
+    expand = "none",
     { -- Left widgets
       layout = wibox.layout.fixed.horizontal,
       s.mytaglist,
       s.mypromptbox,
     },
-    nil, -- Middle widget
+    { -- Middle widget
+      layout = wibox.layout.fixed.horizontal,
+      mytextclock,
+    },
     { -- Right widgets
+      spacing = dpi(8),
       layout = wibox.layout.fixed.horizontal,
       mykeyboardlayout,
-      wibox.widget.systray(),
+      {
+        wibox.widget.systray(),
+        widget = wibox.container.margin,
+        margins = { bottom = dpi(4), top = dpi(4) },
+      },
       batteryarc_widget({
         show_current_level = true,
         font = "Nunito, Bold, 6"
       }),
-      mytextclock,
       s.mylayoutbox,
     },
   }
@@ -265,7 +273,7 @@ client.connect_signal("request::titlebars", function(c)
       awful.titlebar.widget.closebutton(c),
       layout = wibox.layout.fixed.horizontal()
     },
-    layout = wibox.layout.align.horizontal
+    layout = wibox.layout.align.horizontal,
   }
 end)
 

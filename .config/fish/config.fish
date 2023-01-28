@@ -15,7 +15,7 @@ if status is-interactive
   alias ll="exa -lg --color=always --group-directories-first --icons --git"  # long format
   alias lt="exa -aT --color=always --group-directories-first --icons" # tree listing
   # cat -> bat
-  alias cat="bat"
+  alias cat="bat --theme=TwoDark"
   # confirm before overwriting something
   alias cp="cp -i"
   alias mv="mv -i"
@@ -26,6 +26,19 @@ if status is-interactive
   alias rm="trash"
   # copy file content
   alias copy="xclip -sel clip"
+
+  alias update-all='export TMPFILE="$(mktemp)"; \
+    sudo true; \
+    rate-mirrors --save=$TMPFILE arch --max-delay=21600 \
+      && sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
+      && sudo mv $TMPFILE /etc/pacman.d/mirrorlist \
+      && paru -Scc --noconfirm \
+      && paru -Syyu --noconfirm'
+
+  ### VI MODE ###
+  function fish_user_key_bindings
+    fish_vi_key_bindings
+  end
 
   ### PFETCH ON STARTUP ###
   function fish_greeting
