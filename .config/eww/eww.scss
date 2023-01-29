@@ -1,31 +1,28 @@
 .bar {
-  font-family: "FiraCode Nerd Font";
-  background-color: #282c34;
-  color: white;
-  border-radius: 12px;
-  padding: 8px;
+  background-color: transparent;
 }
 
 .bar-widget {
-  background-color: #5c6370;
+  background-color: #282c34;
+  font-family: "FiraCode Nerd Font";
+  font-size: 14px;
+  color: white;
   border-radius: 8px;
   padding: 4px 6px;
 }
 
-.workspaces-widget {
-  .workspace-entry {
-    border-radius: 6px;
-    padding: 4px 6px;
-    margin: 0px 2px;
+.workspace-entry {
+  border-radius: 6px;
+  padding: 4px 6px;
+  margin: 0px 2px;
 
-    &.empty {
-      color: #5c6370;
-    }
-    &.primary {
-      background-color: #61afef;
-    }
-    &.secondary {
-      background-color: #5c6370;
-    }
+  &.empty {
+    color: #5c6370;
+  }
+  &.primary {
+    background-color: #61afef;
+  }
+  &.secondary {
+    background-color: #5c6370;
   }
 }

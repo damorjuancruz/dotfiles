@@ -20,9 +20,13 @@ def update_workspaces():
   # parse
   workspaces = json.loads(workspaces.stdout)
 
+  result = []
   # generate widget
-  widget = f'(box :space-evenly false :class "workspaces-widget"'
   for i in range(1, 6):
+    w = {
+      'id': i
+    }
+
     # get amount of windows in workspace with id == i
     windows = 0
     for workspace in workspaces:
@@ -32,7 +36,6 @@ def update_workspaces():
     
     # set "empty" class if there are no windows
     empty_class = "empty" if windows == 0 else ""
-
     # set focus-related class
     if i == active_workspace_primary:
       focus_class = "primary"
@@ -40,15 +43,13 @@ def update_workspaces():
       focus_class = "secondary"
     else:
       focus_class = ""
-      
-    # add workspace to widget
-    widget += f' (eventbox :onclick "~/.config/hypr/scripts/focus-workspace.py {i}"\
-      (label :class "workspace-entry {focus_class} {empty_class}" :text "{i}"))'
 
-  widget += ")"
-  
+    w['special_classes'] = f'{focus_class} {empty_class}'
+
+    result.append(w)
+
   # output
-  subprocess.run(f"echo '{widget}'", 
+  subprocess.run(f"echo '{json.dumps(result)}'", 
     shell=True)
 
 # subscribe to hyprland socket 2
