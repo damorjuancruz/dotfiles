@@ -1,28 +1,40 @@
-.bar {
+.bar_one,
+.bar_zero {
   background-color: transparent;
+  font-family: "FiraCode Nerd Font";
+  font-size: 14px;
 }
 
 .bar-widget {
   background-color: #282c34;
-  font-family: "FiraCode Nerd Font";
-  font-size: 14px;
   color: white;
   border-radius: 8px;
   padding: 4px 6px;
 }
 
-.workspace-entry {
-  border-radius: 6px;
-  padding: 4px 6px;
-  margin: 0px 2px;
+.workspaces-widget {
+  padding: 4px;
 
-  &.empty {
-    color: #5c6370;
+  .workspace-entry {
+    border-radius: 6px;
+    padding: 4px 6px;
+    margin: 0px 2px;
+
+    &.empty {
+      color: #5c6370;
+    }
+    &.primary {
+      background-color: #61afef;
+    }
+    &.secondary {
+      background-color: #5c6370;
+    }
   }
-  &.primary {
-    background-color: #61afef;
+
+  > :nth-child(1) > .workspace-entry {
+    margin: 0px 2px 0px 0px;
   }
-  &.secondary {
-    background-color: #5c6370;
+  > :nth-last-child(1) > .workspace-entry {
+    margin: 0px 0px 0px 2px;
   }
 }

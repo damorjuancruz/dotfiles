@@ -4,19 +4,39 @@ import subprocess
 import os
 import socket
 import json
+import sys
+
+if len(sys.argv) < 2:
+  print("expected the name of the monitor as the first parameter")
+  exit(0)
+
+main_monitor = sys.argv[1]
 
 def update_workspaces():
   # get monitors
-  monitors = subprocess.run(f"hyprctl monitors -j", stdout=subprocess.PIPE, shell=True)
+  monitors = subprocess.run(f"hyprctl monitors -j", stdout = subprocess.PIPE, shell = True)
   # parse output
   monitors = json.loads(monitors.stdout)
 
   # get active workspaces
-  active_workspace_primary = monitors[1]["activeWorkspace"]["id"]
-  active_workspace_secondary = monitors[0]["activeWorkspace"]["id"]
+  if (len(monitors) > 1):
+    primary_workspace = list(filter(
+      lambda m: m['name'] == main_monitor,
+      monitors
+    ))[0]['activeWorkspace']['id']
+    secondary_workspaces = list(map(
+      lambda m: m['activeWorkspace']['id'],
+      list(filter(
+        lambda m: m['name'] != main_monitor,
+        monitors
+      ))
+    ))
+  else:
+    primary_workspace = monitors[0]['activeWorkspace']['id']
+    secondary_workspaces = []
 
   # get workspaces
-  workspaces = subprocess.run(f"hyprctl workspaces -j", stdout=subprocess.PIPE, shell=True)
+  workspaces = subprocess.run(f"hyprctl workspaces -j", stdout = subprocess.PIPE, shell = True)
   # parse
   workspaces = json.loads(workspaces.stdout)
 
@@ -37,9 +57,9 @@ def update_workspaces():
     # set "empty" class if there are no windows
     empty_class = "empty" if windows == 0 else ""
     # set focus-related class
-    if i == active_workspace_primary:
+    if i == primary_workspace:
       focus_class = "primary"
-    elif i == active_workspace_secondary:
+    elif i in secondary_workspaces:
       focus_class = "secondary"
     else:
       focus_class = ""
@@ -60,5 +80,5 @@ sock.connect(server_address)
 update_workspaces() # initial render
 
 while True:
-  sock.recv(4096).decode("utf-8") # wait for socket message
+  msg = sock.recv(4096).decode("utf-8") # wait for socket message
   update_workspaces() # update workspaces widget on each message

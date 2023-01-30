@@ -1,8 +1,9 @@
-(deflisten workspaces	"~/.config/eww/scripts/get-workspaces.py")
-(defwidget workspaces_widget []
+(deflisten workspaces_monitor_one	"~/.config/eww/scripts/get-workspaces.py HDMI-A-1")
+(deflisten workspaces_monitor_zero	"~/.config/eww/scripts/get-workspaces.py eDP-1")
+(defwidget workspaces_widget [workspaces]
   (box
     :halign "start"
-    :class "bar-widget"
+    :class "bar-widget workspaces-widget"
     (for workspace in workspaces
       (eventbox
         :onclick "~/.config/hypr/scripts/focus-workspace.py ${workspace.id}"
@@ -22,14 +23,17 @@
     :text "${EWW_BATTERY["BAT0"].capacity}%")
 )
 
-(defpoll time :interval "1s" "date '+%F %H:%M'")
+(defpoll time
+  :interval "1s"
+  "date '+%A, %B %e %H:%M'"
+)
 (defwidget clock []
   (label
     :class "bar-widget"
     :text time)
 )
 
-(defwindow bar
+(defwindow bar_one
   :monitor 1
   :geometry (geometry
     :y "12px"
@@ -40,8 +44,24 @@
   :exclusive true
   (centerbox
     :orientation "h"
+    (workspaces_widget :workspaces workspaces_monitor_one)
+    (clock)
+    (battery))
+)
+
+(defwindow bar_zero
+  :monitor 0
+  :geometry (geometry
+    :y "12px"
+    :width "${1920 - 12*2}px"
+    :anchor "top center"
+  )
+  :stacking "fg"
+  :exclusive true
+  (centerbox
+    :orientation "h"
     :class "bar"
-    (workspaces_widget)
+    (workspaces_widget :workspaces workspaces_monitor_zero)
     (clock)
     (battery))
 )
