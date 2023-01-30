@@ -19,8 +19,16 @@
 (defwidget battery []
   (label
     :halign "end"
-    :class "bar-widget"
-    :text "${EWW_BATTERY["BAT0"].capacity}%")
+    :class "bar-widget ${
+      EWW_BATTERY.BAT0.status == 'Charging'
+        ? EWW_BATTERY.BAT0.capacity >= 80
+          ? 'battery-full'
+          : 'battery-charging'
+        : EWW_BATTERY.BAT0.capacity <= 20
+          ? 'battery-low'
+          : ''
+    }"
+    :text "${EWW_BATTERY.BAT0.capacity}%")
 )
 
 (defpoll time
