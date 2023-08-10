@@ -27,18 +27,25 @@
   - unzip
   - fd
   - fzf
+  - tmux 
 </details>
 
 <details>
   <summary>Command</summary>
   
   ```bash
-  paru -S chezmoi google-chrome alacritty fish pfetch exa bat neovim cronie trash-cli docker docker-compose rate-mirrors pacman-contrib tldr xdg-user-dirs bat-asus-battery-bin ttf-firacode-nerd noto-fonts-emoji unzip fd fzf
+  paru -S chezmoi google-chrome alacritty fish pfetch exa bat neovim cronie trash-cli docker docker-compose rate-mirrors pacman-contrib tldr xdg-user-dirs bat-asus-battery-bin ttf-firacode-nerd noto-fonts-emoji unzip fd fzf tmux
   ```
 </details>
 <br>
 
 # Other Settings
+
+## Change default shell to `fish`
+
+```sh
+chsh -s /bin/fish
+```
 
 ## limit charging to 85%
 
@@ -47,12 +54,13 @@ sudo bat-asus-battery threshold 85
 sudo bat-asus-battery persist
 ```
 
-## ssh-agent
+## Enalbe Services
 
 Enable ssh-agent (file located at `.config/systemd/user/ssh-agent.service`) by running
 
 ```
 systemctl --user enable --now ssh-agent
+systemctl --user enable --now tmux
 ```
 
 ## Crontab
