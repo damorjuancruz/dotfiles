@@ -41,12 +41,6 @@
 
 # Other Settings
 
-## Change default shell to `fish`
-
-```sh
-chsh -s /bin/fish
-```
-
 ## limit charging to 85%
 
 ```shell
