@@ -18,9 +18,6 @@ if status is-interactive
   set -Ux DISPLAY :1
 
   ### ALIASES / ABBREVIATIONS / FUNCTIONS ###
-  # dotfiles repo
-  alias dotfiles "git --git-dir=$HOME/.dotfiles.git/ --work-tree=$HOME"
-
   # ls -> exa
   alias exa "exa --color=always --group-directories-first --icons --git" # settings
   alias ls "exa -alhg" # alias for ATL + L
