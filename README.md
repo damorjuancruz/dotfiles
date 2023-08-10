@@ -28,7 +28,7 @@
   <summary>Command</summary>
   
   ```bash
-  paru -S alacritty fish pfetch exa bat neovim cronie trash-cli docker docker-compose rate-mirrors pacman-contrib tldr xdg-user-dirs bat-asus-battery-bin ttf-firacode-nerd noto-fonts-emoji
+  paru -S chezmoi alacritty fish pfetch exa bat neovim cronie trash-cli docker docker-compose rate-mirrors pacman-contrib tldr xdg-user-dirs bat-asus-battery-bin ttf-firacode-nerd noto-fonts-emoji
   ```
 </details>
 <br>
