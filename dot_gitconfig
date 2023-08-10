@@ -1,0 +1,12 @@
+[alias]
+	graph = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset'
+[user]
+	email = damorjuancruz@gmail.com
+	name = "Juan Cruz D'Amor"
+[init]
+	defaultBranch = main
+[push]
+	autoSetupRemote = true
+	followTags = true
+[remote "origin"]
+	prune = true
