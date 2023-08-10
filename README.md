@@ -26,13 +26,14 @@
   - noto-fonts-emoji
   - unzip
   - fd
+  - fzf
 </details>
 
 <details>
   <summary>Command</summary>
   
   ```bash
-  paru -S chezmoi google-chrome alacritty fish pfetch exa bat neovim cronie trash-cli docker docker-compose rate-mirrors pacman-contrib tldr xdg-user-dirs bat-asus-battery-bin ttf-firacode-nerd noto-fonts-emoji unzip fd
+  paru -S chezmoi google-chrome alacritty fish pfetch exa bat neovim cronie trash-cli docker docker-compose rate-mirrors pacman-contrib tldr xdg-user-dirs bat-asus-battery-bin ttf-firacode-nerd noto-fonts-emoji unzip fd fzf
   ```
 </details>
 <br>
