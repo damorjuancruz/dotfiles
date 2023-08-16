@@ -18,6 +18,8 @@ if status is-interactive
   set -Ux DISPLAY :1
 
   ### ALIASES / ABBREVIATIONS / FUNCTIONS ###
+  alias clear 'clear && pfetch'
+
   # ls -> exa
   alias exa "exa --color=always --group-directories-first --icons --git" # settings
   alias ls "exa -alhg" # alias for ATL + L
@@ -72,6 +74,20 @@ if status is-interactive
   abbr gp "git push"
   abbr gpf "git push -f"
   abbr gpl "git pull"
+
+
+  ### FUNCTIONS ###
+  function dev
+    if [ -d $argv[1] ]
+      set PREVIOUS_DIR (pwd)
+      cd $argv[1]
+    
+      tmux split-window -h -p 30 -d
+      nvim .
+
+      cd $PREVIOUS_DIR
+    end
+  end
 
   function gccr
     set BINARY_PATH (mktemp)

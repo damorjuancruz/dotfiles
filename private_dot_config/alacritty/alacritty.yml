@@ -440,11 +440,10 @@ font:
 #   - (Linux/BSD/macOS) `$SHELL` or the user's login shell, if `$SHELL` is unset
 #   - (Windows) powershell
 shell:
- program: /bin/fish
+ program: /bin/sh
  args:
    - -c
    - "tmux -q has-session && exec tmux attach-session || exec tmux new-session"
-   # - --login
 # Startup directory
 #
 # Directory the shell is started in. If this is unset, or `None`, the working
