@@ -1,6 +1,6 @@
 > These dotfiles are managed using `chezmoi`
 
-# Software / Dependencies
+# Software & Dependencies
 
 <details>
   <summary>List</summary>
@@ -28,18 +28,46 @@
   - fd
   - fzf
   - tmux 
+  - rate-mirrors
+  - wl-clipboad
+  - dunst
+  - pipewire
+  - wireplumber
+  - pipewire-pulse
+  - pipewire-jack
+  - xdg-desktop-portal-hyprland
+  - polkit-kde-agent
+  - qt5-wayland
+  - qt6-wayland
+  - waybar-hyprland-git
+  - ripgrep
+  - rofi-lbonn-wayland-git
+  - discord
+  - thunar
+  - gvfs
+  - hyprpaper
+  - jq
+  - telegram-desktop
+  - bluez
+  - bluez-utils
+  - brightnessctl
+  - grimblast-git
+  - wlogout
+  - gparted
+  - xhost
+  - ntfs-3g
+  - htop
+  - swaylock-effects
 </details>
 
-<details>
-  <summary>Command</summary>
-  
-  ```bash
-  paru -S chezmoi google-chrome alacritty fish pfetch exa bat neovim cronie trash-cli docker docker-compose rate-mirrors pacman-contrib tldr xdg-user-dirs bat-asus-battery-bin ttf-firacode-nerd noto-fonts-emoji unzip fd fzf tmux
-  ```
-</details>
 <br>
 
 # Other Settings
+
+## Bat theme
+```sh
+bat cache --build
+```
 
 ## limit charging to 85%
 
@@ -48,13 +76,15 @@ sudo bat-asus-battery threshold 85
 sudo bat-asus-battery persist
 ```
 
-## Enalbe Services
+## Enable Services
 
 Enable ssh-agent (file located at `.config/systemd/user/ssh-agent.service`) by running
 
 ```
 systemctl --user enable --now ssh-agent
 systemctl --user enable --now tmux
+sudo systemctl enable --now cronie
+sudo systemctl enable --now bluetooth
 ```
 
 ## Crontab
@@ -71,5 +101,11 @@ systemctl --user enable --now tmux
 
 - # ParallelDownloads = 5
 + ParallelDownloads = 10
+```
+
+## /etc/security/faillock.conf
+```diff
+- # deny = 3
++ deny = 10
 ```
 
