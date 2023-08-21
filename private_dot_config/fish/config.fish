@@ -116,6 +116,8 @@ if status is-interactive
     fish_vi_key_bindings
     # fish_default_key_bindings
   end
+  set -g fish_cursor_default block;
+  set -g fish_cursor_insert line;
 
   ### PFETCH ON STARTUP ###
   function fish_greeting

@@ -58,6 +58,20 @@
   - ntfs-3g
   - htop
   - swaylock-effects
+  - sddm
+  - zip
+  - xwaylandvideobridge-cursor-mode-2-git
+  - meson
+  - gjs
+  - typescript
+  - socat
+  - gnome-bluetooth-3.0
+  - upower
+  - networkmanager
+  - gobject-introspection
+  - [ags](https://github.com/Aylur/ags/wiki/installation)
+  - catppuccin-gtk-theme-mocha
+  - nwg-look
 </details>
 
 <br>
