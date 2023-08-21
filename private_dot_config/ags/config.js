@@ -5,7 +5,6 @@ const { exec, CONFIG_DIR, USER, execAsync } = ags.Utils;
 const workspaces = {
   type: 'box',
   className: 'workspaces',
-  // box is an instance of Gtk.Box
   connections: [[Hyprland, box => {
     // remove every children
     box.get_children().forEach(ch => ch.destroy());
@@ -13,43 +12,39 @@ const workspaces = {
     // add a button for each workspace
     const workspaces = 5;
     for (let i = 1; i <= workspaces; ++i) {
+      const child = Hyprland.workspaces.get(i) ? '●' : '○'
       box.add(ags.Widget({
         type: 'button',
         onClick: () => execAsync(`/home/${USER}/.config/hypr/scripts/switch-workspace.sh ${i}`),
-        child: 'asdf',
+        child,
         className: Hyprland.active.workspace.id == i ? 'focused' : '',
       }));
     }
 
     // make the box render it
-    // box.show_all();
+    box.show_all();
   }]],
 };
 
 const clock = {
   type: 'label',
   className: 'clock',
-  // trim is for the whitespace at the end of the date output
-  // but doing this is actually bad practice
-  // because exec() will block the main thread, but in case of runnig date
-  // I don't think it matters
   connections: [[1000, label => label.label = exec('date +"%A, %B %d · %R"').trim()]],
 };
 
-// we don't need dunst or any other notification daemon
-// because ags has a notification daemon built in
 const notification = {
   type: 'box',
   className: 'notification',
+  connections: [[Notifications, box => box.visible = Notifications.popups.size > 0]],
   children: [
     {
       type: 'icon',
+      className: 'icon',
       icon: 'preferences-system-notifications-symbolic',
-      // icon is an instance of Gtk.Image
-      connections: [[Notifications, icon => icon.visible = Notifications.popups.size > 0]]
     },
     {
       type: 'label',
+      className: 'label',
       connections: [[Notifications, label => {
         // notifications is a map, to get the last elememnt lets make an array
         label.label = Array.from(Notifications.popups)?.pop()?.[1].summary || '';
@@ -73,7 +68,6 @@ const media = {
 const volume = {
   type: 'box',
   className: 'volume',
-  style: 'min-width: 180px',
   children: [
     {
       type: 'dynamic',
@@ -96,16 +90,14 @@ const volume = {
       }), 'speaker-changed']],
     },
     {
-      type: 'slider',
-      hexpand: true,
-      onChange: value => Audio.speaker.volume = value,
-      connections: [[Audio, slider => {
+      type: 'label',
+      connections: [[Audio, label => {
         if (!Audio.speaker)
-          return;
+          return
 
-        slider.adjustment.value = Audio.speaker.volume;
-      }, 'speaker-changed']],
-    }
+        label.label = `${Math.round(Audio.speaker.volume * 100)}%`
+      }]],
+    },
   ],
 };
 
@@ -115,16 +107,11 @@ const battery = {
   children: [
     {
       type: 'icon',
-      connections: [[Battery, icon => {
-        // icon is an instance of Gtk.Image
-        icon.icon_name = `battery-level-${Math.floor(Battery.percent / 10) * 10}-symbolic`;
-      }]]
+      connections: [[Battery, icon => icon.icon_name = `battery-level-${Math.floor(Battery.percent / 10) * 10}-symbolic`]]
     },
     {
-      type: 'progressbar',
-      valign: 'center',
-      // progressbar is a Gtk.ProgressBar, setValue() just calls set_fraction()
-      connections: [[Battery, progress => progress.setValue(Battery.percent / 100)]],
+      type: 'label',
+      connections: [[Battery, label => label.label = `${Battery.percent}%`]],
     },
   ],
 };
@@ -132,6 +119,7 @@ const battery = {
 // layout of the bar
 const left = {
   type: 'box',
+  className: 'left',
   children: [
     workspaces,
   ],
@@ -142,7 +130,6 @@ const center = {
   className: 'center',
   children: [
     clock,
-    notification,
   ],
 };
 
@@ -151,6 +138,7 @@ const right = {
   className: 'right',
   halign: 'end',
   children: [
+    notification,
     volume,
     battery,
   ],
@@ -162,6 +150,7 @@ const bar = {
   exclusive: true,
   child: {
     type: 'centerbox',
+    className: 'bar',
     children: [
       left,
       center,
