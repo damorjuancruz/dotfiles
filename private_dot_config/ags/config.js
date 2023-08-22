@@ -72,11 +72,11 @@ const volume = {
     {
       type: 'dynamic',
       items: [
-        { value: 101, widget: { type: 'icon', icon: 'audio-volume-overamplified-symbolic' } },
-        { value: 67, widget: { type: 'icon', icon: 'audio-volume-high-symbolic' } },
-        { value: 34, widget: { type: 'icon', icon: 'audio-volume-medium-symbolic' } },
-        { value: 1, widget: { type: 'icon', icon: 'audio-volume-low-symbolic' } },
-        { value: 0, widget: { type: 'icon', icon: 'audio-volume-muted-symbolic' } },
+        { value: 101, widget: { type: 'icon', className: 'icon', icon: 'audio-volume-overamplified-symbolic' } },
+        { value: 67, widget: { type: 'icon', className: 'icon', icon: 'audio-volume-high-symbolic' } },
+        { value: 34, widget: { type: 'icon', className: 'icon', icon: 'audio-volume-medium-symbolic' } },
+        { value: 1, widget: { type: 'icon', className: 'icon', icon: 'audio-volume-low-symbolic' } },
+        { value: 0, widget: { type: 'icon', className: 'icon', icon: 'audio-volume-muted-symbolic' } },
       ],
       // dynamic is a Gtk.Box with an extra update method
       connections: [[Audio, dynamic => dynamic.update(value => {
@@ -107,6 +107,7 @@ const battery = {
   children: [
     {
       type: 'icon',
+      className: 'icon',
       connections: [[Battery, icon => icon.icon_name = `battery-level-${Math.floor(Battery.percent / 10) * 10}-symbolic`]]
     },
     {
