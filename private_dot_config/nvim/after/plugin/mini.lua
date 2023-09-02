@@ -30,3 +30,13 @@ require('mini.splitjoin').setup()
 require('mini.sessions').setup() -- FIXME
 require('mini.starter').setup()
 require('mini.surround').setup()
+require('mini.jump').setup({
+  -- Delay values (in ms) for different functionalities. Set any of them to
+  -- a very big number (like 10^7) to virtually disable.
+  delay = {
+    -- Delay between jump and highlighting all possible jumps
+    highlight = 10000000,
+    -- Delay between jump and automatic stop if idle (no jump is done)
+    idle_stop = 10000000,
+  },
+})

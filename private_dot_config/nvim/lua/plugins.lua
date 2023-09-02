@@ -94,8 +94,6 @@ return require('packer').startup(function(use)
 
   use { 'echasnovski/mini.nvim', branch = 'stable' }
 
-  use 'justinmk/vim-sneak'
-
   use 'nacro90/numb.nvim'
 
   use 'christoomey/vim-tmux-navigator'
