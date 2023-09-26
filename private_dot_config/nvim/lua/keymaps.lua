@@ -26,3 +26,5 @@ vim.keymap.set('n', 'j', "v:count == 0 ? 'gj' : 'j'", { expr = true, silent = tr
 
 vim.keymap.set('n', '<leader>w', '<C-w>')
 vim.keymap.set('n', '<leader>q', vim.cmd.quitall)
+
+vim.keymap.set('i', 'ii', '<Esc>')

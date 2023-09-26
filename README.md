@@ -23,6 +23,7 @@
   - xdg-user-dirs
   - bat-asus-battery-bin (AUR)
   - ttf-firacode-nerd
+  - noto-fonts
   - noto-fonts-emoji
   - unzip
   - fd
