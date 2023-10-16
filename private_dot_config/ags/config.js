@@ -1,167 +1,155 @@
-// importing
-const { Hyprland, Notifications, Mpris, Audio, Battery } = ags.Service;
-const { exec, CONFIG_DIR, USER, execAsync } = ags.Utils;
+import Widget from 'resource:///com/github/Aylur/ags/widget.js';
+import App from 'resource:///com/github/Aylur/ags/app.js';
+import { exec, execAsync, USER } from 'resource:///com/github/Aylur/ags/utils.js';
 
-const workspaces = {
-  type: 'box',
+// services
+import Hyprland from 'resource:///com/github/Aylur/ags/service/hyprland.js';
+import SystemTray from 'resource:///com/github/Aylur/ags/service/systemtray.js';
+import Audio from 'resource:///com/github/Aylur/ags/service/audio.js';
+import Battery from 'resource:///com/github/Aylur/ags/service/battery.js';
+import Notifications from 'resource:///com/github/Aylur/ags/service/notifications.js';
+
+const workspaces = () => Widget.Box({
   className: 'workspaces',
-  connections: [[Hyprland, box => {
-    // remove every children
-    box.get_children().forEach(ch => ch.destroy());
-
-    // add a button for each workspace
-    const workspaces = 5;
-    for (let i = 1; i <= workspaces; ++i) {
-      const child = Hyprland.workspaces.get(i) ? '●' : '○'
-      box.add(ags.Widget({
-        type: 'button',
-        onClick: () => execAsync(`/home/${USER}/.config/hypr/scripts/switch-workspace.sh ${i}`),
-        child,
+  connections: [
+    [Hyprland, self => {
+      self.children = Array.from({ length: 5 }, (_, i) => i + 1).map((i) => Widget.Button({
+        onClicked: () => execAsync(
+          `/home/${USER}/.config/hypr/scripts/switch-workspace.sh ${i}`
+        ),
+        child: Widget.Label(Hyprland.getWorkspace(i) ? '●' : '○'),
         className: Hyprland.active.workspace.id == i ? 'focused' : '',
-      }));
-    }
+      }))
+    }]
+  ]
+})
 
-    // make the box render it
-    box.show_all();
-  }]],
-};
-
-const clock = {
-  type: 'label',
+const clock = () => Widget.Label({
   className: 'clock',
-  connections: [[1000, label => label.label = exec('date +"%A, %B %d · %R"').trim()]],
-};
+  connections: [
+    [1000, async (self) => {
+      self.label = await execAsync(['date', '+%A, %B %d · %R'])
+    }]
+  ],
+})
 
-const notification = {
-  type: 'box',
+const notifications = () => Widget.Box({
   className: 'notification',
-  connections: [[Notifications, box => box.visible = Notifications.popups.size > 0]],
+  connections: [
+    [Notifications, self => self.visible = Notifications.popups.length > 0]
+  ],
   children: [
-    {
-      type: 'icon',
+    Widget.Icon({
       className: 'icon',
       icon: 'preferences-system-notifications-symbolic',
-    },
-    {
-      type: 'label',
+    }),
+    Widget.Label({
       className: 'label',
-      connections: [[Notifications, label => {
-        // notifications is a map, to get the last elememnt lets make an array
-        label.label = Array.from(Notifications.popups)?.pop()?.[1].summary || '';
-      }]],
-    },
-  ],
-};
-
-const media = {
-  type: 'label',
-  className: 'media',
-  connections: [[Mpris, label => {
-    const mpris = Mpris.getPlayer('');
-    if (mpris)
-      label.label = `${mpris.trackArtists.join(', ')} - ${mpris.trackTitle}`;
-    else
-      label.label = 'Nothing is playing';
-  }]],
-};
-
-const volume = {
-  type: 'box',
-  className: 'volume',
-  children: [
-    {
-      type: 'dynamic',
-      items: [
-        { value: 101, widget: { type: 'icon', className: 'icon', icon: 'audio-volume-overamplified-symbolic' } },
-        { value: 67, widget: { type: 'icon', className: 'icon', icon: 'audio-volume-high-symbolic' } },
-        { value: 34, widget: { type: 'icon', className: 'icon', icon: 'audio-volume-medium-symbolic' } },
-        { value: 1, widget: { type: 'icon', className: 'icon', icon: 'audio-volume-low-symbolic' } },
-        { value: 0, widget: { type: 'icon', className: 'icon', icon: 'audio-volume-muted-symbolic' } },
+      connections: [
+        [Notifications, self => {
+          self.label = Notifications.popups.slice(-1)[0]?.summary ?? ''
+        }]
       ],
-      // dynamic is a Gtk.Box with an extra update method
-      connections: [[Audio, dynamic => dynamic.update(value => {
-        if (!Audio.speaker)
-          return;
-
-        if (Audio.speaker.isMuted)
-          return value === 0;
-
-        return value <= (Audio.speaker.volume * 100);
-      }), 'speaker-changed']],
-    },
-    {
-      type: 'label',
-      connections: [[Audio, label => {
-        if (!Audio.speaker)
-          return
-
-        label.label = `${Math.round(Audio.speaker.volume * 100)}%`
-      }]],
-    },
+    }),
   ],
-};
+})
+const systray = () => Widget.Box({
+  connections: [[SystemTray, self => {
+    self.children = SystemTray.items.map(item => Widget.Button({
+      child: Widget.Icon({ binds: [['icon', item, 'icon']] }),
+      onPrimaryClick: (_, event) => item.activate(event),
+      onSecondaryClick: (_, event) => item.openMenu(event),
+      binds: [['tooltip-markup', item, 'tooltip-markup']],
+    }));
+  }]],
+});
+const volume = () => Widget.Button({
+  className: 'volume',
+  onClicked: () => execAsync(
+    ['wpctl', 'set-mute', '@DEFAULT_AUDIO_SINK@', 'toggle']
+  ),
+  child: Widget.Icon({
+    connections: [[Audio, self => {
+      if (!Audio.speaker)
+        return;
 
-const battery = {
-  type: 'box',
+      const vol = Audio.speaker.volume * 100;
+      const icon = Audio.speaker.stream.isMuted
+        ? 'muted'
+        : [
+          [101, 'overamplified'],
+          [67, 'high'],
+          [34, 'medium'],
+          [1, 'low'],
+          [0, 'muted'],
+        ].find(([threshold]) => threshold <= vol)[1];
+
+      self.icon = `audio-volume-${icon}-symbolic`;
+      self.tooltipText = `${Math.floor(vol)}%`;
+    }, 'speaker-changed']],
+  }),
+});
+const battery = () => Widget.Box({
   className: 'battery',
   children: [
-    {
-      type: 'icon',
+    Widget.Icon({
       className: 'icon',
-      connections: [[Battery, icon => icon.icon_name = `battery-level-${Math.floor(Battery.percent / 10) * 10}-symbolic`]]
-    },
-    {
-      type: 'label',
+      connections: [
+        [Battery, self => {
+          self.icon_name = `battery-level-${Math.floor(Battery.percent / 10) * 10}-symbolic`
+        }]
+      ]
+    }),
+    Widget.Label({
       connections: [[Battery, label => label.label = `${Battery.percent}%`]],
-    },
+    }),
   ],
-};
+})
 
-// layout of the bar
-const left = {
-  type: 'box',
+const left = () => Widget.Box({
   className: 'left',
   children: [
-    workspaces,
-  ],
-};
-
-const center = {
-  type: 'box',
+    workspaces(),
+  ]
+})
+const center = () => Widget.Box({
   className: 'center',
   children: [
-    clock,
+    clock(),
   ],
-};
-
-const right = {
-  type: 'box',
+})
+const right = () => Widget.Box({
   className: 'right',
   halign: 'end',
   children: [
-    notification,
-    volume,
-    battery,
-  ],
-};
+    notifications(),
+    systray(),
+    volume(),
+    battery(),
+  ]
+})
 
-const bar = {
-  name: 'bar',
+const barWindow = ({ monitor } = {}) => Widget.Window({
+  name: `bar-${monitor}`,
+  monitor,
   anchor: ['top', 'left', 'right'],
   exclusive: true,
-  child: {
-    type: 'centerbox',
+  child: Widget.CenterBox({
     className: 'bar',
-    children: [
-      left,
-      center,
-      right,
-    ],
-  },
-}
+    startWidget: left(),
+    centerWidget: center(),
+    endWidget: right(),
+  })
+});
 
-// exporting the config
-var config = {
-  style: CONFIG_DIR + '/style.css',
-  windows: [bar],
+const monitors = JSON.parse(exec('hyprctl monitors -j'))
+export default {
+  // closeWindowDelay: {
+  //   'window-name': 500, // milliseconds
+  // },
+  // notificationPopupTimeout: 5000, // milliseconds
+  // cacheNotificationActions: false,
+  // maxStreamVolume: 1.5, // float
+  style: App.configDir + '/style.css',
+  windows: monitors.map(({ id }) => barWindow({ monitor: id })),
 };

@@ -71,7 +71,7 @@
   - upower
   - networkmanager
   - gobject-introspection
-  - [ags](https://github.com/Aylur/ags/wiki/installation)
+  - aylurs-gtk-shell
   - catppuccin-gtk-theme-mocha
   - nwg-look
 </details>
