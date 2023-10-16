@@ -2,7 +2,7 @@ require('lualine').setup {
   options = {
     disabled_filetypes = {
       'neo-tree',
-      'alpha',
+      -- 'alpha',
     },
     theme = 'catppuccin',
     component_separators = '·',
@@ -25,7 +25,7 @@ require('lualine').setup {
     lualine_z = { 'location' },
   },
   tabline = {},
-  extensions = {},
+  extensions = { 'toggleterm' },
 }
 
 vim.opt.showmode = false

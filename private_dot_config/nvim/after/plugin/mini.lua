@@ -27,8 +27,6 @@ hipatterns.setup({
 require('mini.move').setup()
 require('mini.pairs').setup()
 require('mini.splitjoin').setup()
-require('mini.sessions').setup() -- FIXME
-require('mini.starter').setup()
 require('mini.surround').setup()
 require('mini.jump').setup({
   -- Delay values (in ms) for different functionalities. Set any of them to

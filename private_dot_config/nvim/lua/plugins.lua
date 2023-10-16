@@ -33,10 +33,16 @@ return require('packer').startup(function(use)
     }
   }
 
+  use {
+    "nvim-telescope/telescope-file-browser.nvim",
+    requires = { "nvim-telescope/telescope.nvim", "nvim-lua/plenary.nvim" }
+  }
+
   use { "catppuccin/nvim", as = "catppuccin" }
 
   use('nvim-treesitter/nvim-treesitter', { run = ':TSUpdate' })
   use 'nvim-treesitter/playground'
+  use 'nvim-treesitter/nvim-treesitter-context'
 
   use {
     'VonHeikemen/lsp-zero.nvim',
@@ -56,8 +62,15 @@ return require('packer').startup(function(use)
       -- Autocompletion
       { 'hrsh7th/nvim-cmp' },     -- Required
       { 'hrsh7th/cmp-nvim-lsp' }, -- Required
+      { 'hrsh7th/cmp-nvim-lsp-signature-help' },
       { 'hrsh7th/cmp-cmdline' },
       { 'hrsh7th/cmp-buffer' },
+      { 'hrsh7th/cmp-calc' },
+      { 'FelipeLema/cmp-async-path' },
+      {
+        "mtoohey31/cmp-fish",
+        ft = "fish"
+      },
       { 'onsails/lspkind-nvim' },
       { 'L3MON4D3/LuaSnip' }, -- Required
     }
@@ -96,4 +109,6 @@ return require('packer').startup(function(use)
   use 'nacro90/numb.nvim'
 
   use 'christoomey/vim-tmux-navigator'
+
+  use "akinsho/toggleterm.nvim"
 end)

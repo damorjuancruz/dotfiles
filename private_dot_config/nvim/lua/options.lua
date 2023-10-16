@@ -11,16 +11,16 @@ vim.opt.autoindent = true
 vim.opt.smartindent = true
 vim.opt.smarttab = true
 
-vim.opt.wrap = true        -- line wrap
+vim.opt.wrap = true -- line wrap
 vim.opt.breakindent = true -- keep indentation when wrapped
-vim.opt.showbreak = '↳'  -- character to show at the start of a line that has been wrapped
+vim.opt.showbreak = '↳' -- character to show at the start of a line that has been wrapped
 
-vim.opt.swapfile = false   -- no swap file
-vim.opt.backup = false     -- no backup file
-vim.opt.undofile = true    -- persist undo history between sessions
+vim.opt.swapfile = false -- no swap file
+vim.opt.backup = false -- no backup file
+vim.opt.undofile = true -- persist undo history between sessions
 
-vim.opt.hlsearch = false   -- don't highlight search results
-vim.opt.incsearch = true   -- search as you type
+vim.opt.hlsearch = false -- don't highlight search results
+vim.opt.incsearch = true -- search as you type
 -- case-insensitive search unless capital letters are present
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
@@ -51,3 +51,5 @@ vim.opt.foldmethod = "indent"
 vim.opt.foldenable = false
 vim.opt.foldlevel = 99
 vim.g.markdown_folding = 1 -- enable markdown folding
+
+vim.opt.guifont = 'FiraCode Nerd Font:h11'

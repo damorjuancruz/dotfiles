@@ -13,7 +13,8 @@
   - pfetch (AUR)
   - exa
   - bat
-  - nvim
+  - neovim
+  - neovide
   - cronie
   - trash-cli
   - docker & docker-compose

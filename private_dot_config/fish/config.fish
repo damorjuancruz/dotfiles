@@ -7,7 +7,9 @@ if status is-interactive
   ### VARIABLES ###
   # nvm
   set --universal nvm_default_version lts/hydrogen
-  set --universal nvm_default_packages yarn pnpm
+  set --universal nvm_default_packages yarn pnpm bun
+
+  fish_config theme choose "Catppuccin Mocha"
 
   # catppuccin for fzf
   set -Ux FZF_DEFAULT_OPTS "\
