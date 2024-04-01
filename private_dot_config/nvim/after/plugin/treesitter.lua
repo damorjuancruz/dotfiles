@@ -1,3 +1,14 @@
+local parser_config = require("nvim-treesitter.parsers").get_parser_configs()
+
+parser_config.hypr = {
+  install_info = {
+    url = "https://github.com/luckasRanarison/tree-sitter-hyprlang",
+    files = { "src/parser.c" },
+    branch = "master",
+  },
+  filetype = "hypr",
+}
+
 require 'nvim-treesitter.configs'.setup {
   autotag = {
     enable = true,
@@ -17,6 +28,7 @@ require 'nvim-treesitter.configs'.setup {
     'json',
     "javascript",
     "markdown",
+    "markdown_inline",
     'prisma',
     "python",
     'racket',
@@ -28,21 +40,16 @@ require 'nvim-treesitter.configs'.setup {
     "typescript",
     'yaml',
     'php',
-    "c", "lua", "vim", "vimdoc", "query" -- (the five listed parsers should always be installed)
+    'hypr',
+    "c", "lua", "vim", "vimdoc", "query" -- (this five parsers should always be installed)
   },
 
   -- Install parsers synchronously (only applied to `ensure_installed`)
-  sync_install = false,
+  sync_install = true,
 
   -- Automatically install missing parsers when entering buffer
   -- Recommendation: set to false if you don't have `tree-sitter` CLI installed locally
-  auto_install = true,
-
-  -- List of parsers to ignore installing (for "all")
-  --  ignore_install = { "javascript" },
-
-  ---- If you need to change the installation directory of the parsers (see -> Advanced Setup)
-  -- parser_install_dir = "/some/path/to/store/parsers", -- Remember to run vim.opt.runtimepath:append("/some/path/to/store/parsers")!
+  auto_install = false,
 
   highlight = {
     enable = true,

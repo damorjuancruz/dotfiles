@@ -21,6 +21,7 @@ vim.opt.undofile = true -- persist undo history between sessions
 
 vim.opt.hlsearch = false -- don't highlight search results
 vim.opt.incsearch = true -- search as you type
+
 -- case-insensitive search unless capital letters are present
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
@@ -53,3 +54,5 @@ vim.opt.foldlevel = 99
 vim.g.markdown_folding = 1 -- enable markdown folding
 
 vim.opt.guifont = 'FiraCode Nerd Font:h11'
+
+vim.opt.conceallevel = 1 -- obsidia.nvim's additional highlighting

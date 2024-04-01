@@ -12,8 +12,7 @@ end
 ensure_packer()
 
 -- autocommand that reloads neovim whenever you save the plugins.lua file
-vim.cmd [[
-  augroup packer_user_config
+vim.cmd [[ augroup packer_user_config
     autocmd!
     autocmd BufWritePost plugins.lua source <afile> | PackerSync
   augroup end
@@ -33,16 +32,15 @@ return require('packer').startup(function(use)
     }
   }
 
-  use {
-    "nvim-telescope/telescope-file-browser.nvim",
-    requires = { "nvim-telescope/telescope.nvim", "nvim-lua/plenary.nvim" }
-  }
-
   use { "catppuccin/nvim", as = "catppuccin" }
 
   use('nvim-treesitter/nvim-treesitter', { run = ':TSUpdate' })
   use 'nvim-treesitter/playground'
   use 'nvim-treesitter/nvim-treesitter-context'
+  use {
+    "luckasRanarison/tree-sitter-hyprlang",
+    requires = { "nvim-treesitter/nvim-treesitter" },
+  }
 
   use {
     'VonHeikemen/lsp-zero.nvim',
@@ -111,4 +109,12 @@ return require('packer').startup(function(use)
   use 'christoomey/vim-tmux-navigator'
 
   use "akinsho/toggleterm.nvim"
+
+  use({
+    "epwalsh/obsidian.nvim",
+    tag = "*", -- recommended, use latest release instead of latest commit
+    requires = {
+      "nvim-lua/plenary.nvim",
+    },
+  })
 end)

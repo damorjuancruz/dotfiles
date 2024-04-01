@@ -38,7 +38,7 @@ local telescope = require('telescope.builtin')
 lsp_zero.on_attach(function(_, bufnr)
   lsp_zero.default_keymaps({
     buffer = bufnr,
-    exclude = { 'gr', 'gd' }
+    exclude = { 'gr', 'gd', 'gi' }
   })
   lsp_zero.buffer_autoformat()
 
@@ -52,9 +52,10 @@ lsp_zero.on_attach(function(_, bufnr)
 end)
 
 require('lspconfig').lua_ls.setup(lsp_zero.nvim_lua_ls())
-require('lspconfig').volar.setup({
-  filetypes = { 'typescript', 'javascript', 'vue', 'json' }
-})
+
+-- require('lspconfig').volar.setup({
+--   filetypes = { 'typescript', 'javascript', 'vue', 'json' }
+-- })
 vim.api.nvim_create_autocmd("LspAttach", {
   callback = function(args)
     local client = vim.lsp.get_client_by_id(args.data.client_id)
@@ -63,7 +64,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
       local volarAttached = #(
         vim.lsp.get_active_clients({
           bufnr = args.buf,
-          name = 'volar'
+          name = 'typescript-tools'
         })
       ) > 0
       if (volarAttached) then
@@ -71,7 +72,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
         print('tsserver stopped')
       end
     else
-      if (client.name == 'volar') then
+      if (client.name == 'typescript-tools') then
         local tsserver_clients = vim.lsp.get_active_clients({
           bufnr = args.buf,
           name = 'tsserver'

@@ -56,7 +56,10 @@ const notifications = () => Widget.Box({
 const systray = () => Widget.Box({
   connections: [[SystemTray, self => {
     self.children = SystemTray.items.map(item => Widget.Button({
-      child: Widget.Icon({ binds: [['icon', item, 'icon']] }),
+      child: Widget.Icon({
+        className: 'icon',
+        binds: [['icon', item, 'icon']]
+      }),
       onPrimaryClick: (_, event) => item.activate(event),
       onSecondaryClick: (_, event) => item.openMenu(event),
       binds: [['tooltip-markup', item, 'tooltip-markup']],
@@ -69,6 +72,7 @@ const volume = () => Widget.Button({
     ['wpctl', 'set-mute', '@DEFAULT_AUDIO_SINK@', 'toggle']
   ),
   child: Widget.Icon({
+    className: 'icon',
     connections: [[Audio, self => {
       if (!Audio.speaker)
         return;
@@ -120,7 +124,7 @@ const center = () => Widget.Box({
 })
 const right = () => Widget.Box({
   className: 'right',
-  halign: 'end',
+  hpack: 'end',
   children: [
     notifications(),
     systray(),
@@ -133,12 +137,12 @@ const barWindow = ({ monitor } = {}) => Widget.Window({
   name: `bar-${monitor}`,
   monitor,
   anchor: ['top', 'left', 'right'],
-  exclusive: true,
+  exclusivity: 'exclusive',
   child: Widget.CenterBox({
     className: 'bar',
-    startWidget: left(),
-    centerWidget: center(),
-    endWidget: right(),
+    start_widget: left(),
+    center_widget: center(),
+    end_widget: right(),
   })
 });
 

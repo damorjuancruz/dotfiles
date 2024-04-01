@@ -20,14 +20,12 @@ if status is-interactive
   set -Ux DISPLAY :1
 
   ### ALIASES / ABBREVIATIONS / FUNCTIONS ###
-  alias clear 'clear && pfetch'
+  abbr clear 'clear && pfetch'
 
   # ls -> exa
   alias exa "exa --color=always --group-directories-first --icons --git" # settings
   alias ls "exa -alhg" # alias for ATL + L
   abbr ls "exa -alhg" # my preferred listing
-  abbr la "exa -a"  # all files and dirs
-  abbr ll "exa -lg"  # long format
   abbr lt "exa -aT" # tree listing
 
   # cat -> bat
@@ -60,22 +58,32 @@ if status is-interactive
   abbr gs "git status"
   abbr gl "git log --oneline"
   abbr glg "git graph"
-  abbr gll "git log"
   abbr ga "git add"
   abbr gap "git add -p"
-  abbr gai "git add -i"
   abbr gaa "git add --all"
   abbr gc "git commit -m"
   abbr gca "git commit -am"
   abbr gac "git add --all && git commit -m"
-  abbr gapc "git add -p && git commit -m"
-  abbr gaic "git add -i && git commit -m"
   abbr gco "git checkout"
   abbr gcob "git checkout -b"
   abbr gd "git diff"
+  abbr gdw "git diff --word-diff"
   abbr gp "git push"
-  abbr gpf "git push -f"
+  abbr gpf "git push --force-with-lease"
   abbr gpl "git pull"
+  abbr gst "git stash save -u"
+  abbr gstp "git stash pop"
+  abbr gstl "git stash list"
+  abbr gbrl "git branch -l"
+  abbr gbrd "git branch -d"
+  abbr gbrD "git branch -D"
+  abbr gbrm "git branch -m"
+  abbr gre "git restore"
+  abbr gr "git reset"
+  abbr grh "git reset --hard"
+  abbr gm "git merge --no-ff"
+  abbr gcl "git clone"
+  abbr gba "git add --all && git commit -m 'backup' && git push"
 
 
   ### FUNCTIONS ###

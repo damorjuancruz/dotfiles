@@ -3,6 +3,7 @@
 [user]
 	email = damorjuancruz@gmail.com
 	name = "Juan Cruz D'Amor"
+  signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMmfMhZu1jAvex/Ylc1WhD+k8Rwbtkwit12a95tLfyzn damorjuancruz@gmail.com
 [init]
 	defaultBranch = main
 [push]
@@ -10,3 +11,7 @@
 	followTags = true
 [remote "origin"]
 	prune = true
+[commit]
+	gpgsign = true
+[gpg]
+  format = ssh
