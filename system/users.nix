@@ -26,6 +26,7 @@
         neovim
         vesktop
         firefox
+        libnotify
         (google-chrome.override {
           commandLineArgs = [
             "--enable-features=WebUIDarkMode"
@@ -34,6 +35,7 @@
         })
         neovide
         fuzzel
+        cargo
 
         btop
         shotman
