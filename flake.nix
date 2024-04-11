@@ -19,10 +19,10 @@
     in
     {
       nixosConfigurations = {
-        nixos = nixpkgs.lib.nixosSystem {
+        laptop = nixpkgs.lib.nixosSystem {
           specialArgs = { inherit inputs; };
           modules = [
-            ./system/configuration.nix
+            ./hosts/laptop/configuration.nix
           ];
         };
       };

@@ -1,29 +1,25 @@
-{ config, pkgs, inputs, ... }:
+{ pkgs, ... }:
 
 {
   imports = [
     ./hardware-configuration.nix
-    ./users.nix
-    ../config/home.nix
+    ./home.nix
+    ../../os-modules/ssh-agent.nix
+    ../../os-modules/hyprland.nix
+    ../../os-modules/pipewire.nix
+    ../../os-modules/power.nix
+    ../../os-modules/plymouth.nix
   ];
 
-  services.xserver = {
-    enable = true; # Might need this for Xwayland  
-    displayManager.sddm.enable = true;
-  };
+  users = {
+    mutableUsers = false;
 
-  programs.hyprland.enable = true;
-
-  environment.sessionVariables.NIXOS_OZONE_WL = "1"; # This variable fixes electron apps in wayland
-
-  security.rtkit.enable = true;
-  services.pipewire = {
-    enable = true;
-    alsa = {
-      enable = true;
-      support32Bit = true;
+    users.jcdamor = {
+      initialPassword = "1234";
+      isNormalUser = true;
+      description = "Juan Cruz D'Amor";
+      extraGroups = [ "networkmanager" "wheel" ];
     };
-    pulse.enable = true;
   };
 
   nix.settings = {
@@ -40,18 +36,6 @@
       };
       timeout = 0;
       efi.canTouchEfiVariables = true;
-    };
-
-    kernelParams = ["quiet"];
-    initrd.systemd.enable = true;
-    plymouth = {
-      enable = true;
-      themePackages = with pkgs; [
-        (adi1090x-plymouth-themes.override {
-          selected_themes = ["loader_alt"];
-        })
-      ];
-      theme = "loader_alt";
     };
 
     tmp.cleanOnBoot = true;
@@ -80,30 +64,6 @@
   };
 
   nixpkgs.config.allowUnfree = true;
-  environment.systemPackages = with pkgs; [ ];
-
-  services.upower.enable = true;
-
-  powerManagement.enable = true;
-  services.thermald.enable = true;
-  services.tlp = {
-    enable = true;
-    settings = {
-      CPU_SCALING_GOVERNOR_ON_AC = "performance";
-      CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
-
-      CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-      CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-
-      CPU_MIN_PERF_ON_AC = 0;
-      CPU_MAX_PERF_ON_AC = 100;
-      CPU_MIN_PERF_ON_BAT = 0;
-      CPU_MAX_PERF_ON_BAT = 20;
-
-      START_CHARGE_THRESH_BAT0 = 0;
-      STOP_CHARGE_THRESH_BAT0 = 60;
-    };
-  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
