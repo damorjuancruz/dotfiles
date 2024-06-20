@@ -14,12 +14,25 @@
           ../../hm-modules/features/git.nix
           ../../hm-modules/features/ssh.nix
           ../../hm-modules/features/xdg.nix
+          ../../hm-modules/features/gtk.nix
+          ../../hm-modules/features/cursor.nix
         ];
 
         home.username = "jcdamor";
         home.homeDirectory = "/home/jcdamor";
 
         home.packages = with pkgs; [
+          nh
+          nix-output-monitor
+
+          networkmanagerapplet
+          polkit-kde-agent
+          gparted
+          remmina
+          
+          qmk
+          libreoffice
+
           kitty
           neovim
           vesktop
@@ -47,7 +60,7 @@
 
           starship
           fish
-          pfetch
+          fastfetch
           tldr
           eza
           trash-cli

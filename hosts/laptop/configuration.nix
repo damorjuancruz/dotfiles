@@ -9,7 +9,20 @@
     ../../os-modules/pipewire.nix
     ../../os-modules/power.nix
     ../../os-modules/plymouth.nix
+    ../../os-modules/syncthing.nix
+    ../../os-modules/fonts.nix
+    ../../os-modules/thunar.nix
+    ../../os-modules/bluetooth.nix
   ];
+
+  security.polkit.enable = true;
+
+  hardware.opengl = {
+    enable = true;
+    extraPackages = with pkgs; [
+        intel-media-driver
+    ];
+  };
 
   users = {
     mutableUsers = false;
