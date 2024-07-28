@@ -22,6 +22,8 @@
         home.homeDirectory = "/home/jcdamor";
 
         home.packages = with pkgs; [
+          corefonts
+          sway-contrib.grimshot
           nh
           nix-output-monitor
 
