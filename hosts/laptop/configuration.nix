@@ -17,7 +17,7 @@
 
   security.polkit.enable = true;
 
-  hardware.opengl = {
+  hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
         intel-media-driver
@@ -58,6 +58,7 @@
     hostName = "nixos";
     networkmanager.enable = true;
   };
+  programs.openvpn3.enable = true;
 
   time.timeZone = "America/Argentina/Buenos_Aires";
 

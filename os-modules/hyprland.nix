@@ -1,10 +1,8 @@
 { ... }:
 
 {
-  services.xserver = {
-    enable = true; # Might need this for Xwayland  
-    displayManager.sddm.enable = true;
-  };
+  services.xserver.enable = true; # Might need this for Xwayland  
+  services.displayManager.sddm.enable = true;
 
   programs.hyprland.enable = true;
 

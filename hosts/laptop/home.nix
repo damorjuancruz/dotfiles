@@ -6,7 +6,9 @@
   home-manager = {
     useUserPackages = true;
     useGlobalPkgs = true;
-    extraSpecialArgs = { inherit inputs; };
+    extraSpecialArgs = {
+      inherit inputs;
+    };
     users = {
       jcdamor = { config, pkgs, ... }: {
         imports = [
@@ -14,16 +16,20 @@
           ../../hm-modules/features/git.nix
           ../../hm-modules/features/ssh.nix
           ../../hm-modules/features/xdg.nix
-          ../../hm-modules/features/gtk.nix
+          # ../../hm-modules/features/gtk.nix
           ../../hm-modules/features/cursor.nix
+          ../../hm-modules/features/nvim.nix
         ];
 
         home.username = "jcdamor";
         home.homeDirectory = "/home/jcdamor";
 
         home.packages = with pkgs; [
+          spotify
+
           corefonts
           sway-contrib.grimshot
+          grimblast
           nh
           nix-output-monitor
 
@@ -31,24 +37,21 @@
           polkit-kde-agent
           gparted
           remmina
-          
+
           qmk
           libreoffice
 
           kitty
-          neovim
           vesktop
           firefox
           libnotify
-          (google-chrome.override {
-            commandLineArgs = [
-              "--enable-features=WebUIDarkMode"
-              "--force-dark-mode"
-            ];
-          })
+          google-chrome
           neovide
           fuzzel
           cargo
+          beeper
+
+          jetbrains.idea-community
 
           btop
           shotman
@@ -69,22 +72,18 @@
           unzip
           zip
           wl-clipboard
-          ripgrep
           bat
-          
+          brightnessctl
+
           syncthing
           chezmoi
 
           jq
-          fd
           fzf
           nodejs_20
           git
-          gcc
           gnumake
           telegram-desktop
-          # clang
-          cmake
           wget
         ];
 
