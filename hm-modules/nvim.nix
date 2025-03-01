@@ -1,11 +1,11 @@
 { pkgs, ... }: {
   home.file.".config/nvim-new" = {
-    source = ./nvim-config;
+    source = ./sources/nvim-config;
     recursive = true;
   };
   
   home.file.".config/lazyvim" = {
-    source = ./lazyvim;
+    source = ./sources/lazyvim;
     recursive = true;
   };
 

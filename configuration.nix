@@ -2,17 +2,15 @@
 
 {
   imports = [
-    ./hardware-configuration.nix
-    ./home.nix
-    ../../os-modules/ssh-agent.nix
-    ../../os-modules/hyprland.nix
-    ../../os-modules/pipewire.nix
-    ../../os-modules/power.nix
-    ../../os-modules/plymouth.nix
-    ../../os-modules/syncthing.nix
-    ../../os-modules/fonts.nix
-    ../../os-modules/thunar.nix
-    ../../os-modules/bluetooth.nix
+    ./os-modules/ssh-agent.nix
+    ./os-modules/hyprland.nix
+    ./os-modules/pipewire.nix
+    ./os-modules/power.nix
+    ./os-modules/plymouth.nix
+    ./os-modules/syncthing.nix
+    ./os-modules/fonts.nix
+    ./os-modules/thunar.nix
+    ./os-modules/bluetooth.nix
   ];
 
   security.polkit.enable = true;
@@ -55,10 +53,9 @@
   };
 
   networking = {
-    hostName = "nixos";
+    hostName = "laptop";
     networkmanager.enable = true;
   };
-  programs.openvpn3.enable = true;
 
   time.timeZone = "America/Argentina/Buenos_Aires";
 
