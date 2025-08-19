@@ -1,4 +1,4 @@
-{ ... }:
+{ pkgs, config, ... }:
 
 {
   services.xserver.enable = true; # Might need this for Xwayland  
@@ -27,7 +27,11 @@
     }
   '';
 
-  programs.hyprland.enable = true;
+  programs.hyprland = {
+    enable = true;
+    # package = pkgs.unstable.hyprland;
+    # portalPackage = pkgs.unstable.xdg-desktop-portal-hyprland;
+  };
 
   environment.sessionVariables.NIXOS_OZONE_WL = "1"; # This variable fixes electron apps in wayland
 }

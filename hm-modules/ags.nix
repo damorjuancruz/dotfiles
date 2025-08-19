@@ -10,10 +10,13 @@
     configDir = ./sources/ags;
 
     # additional packages to add to gjs's runtime
-    extraPackages = with pkgs; [
-      # gtksourceview
-      # webkitgtk
-      # accountsservice
+    extraPackages = with inputs.ags.packages.${pkgs.system}; [
+      battery
+      hyprland
+      mpris
+      network
+      tray
+      wireplumber
     ];
   };
 }

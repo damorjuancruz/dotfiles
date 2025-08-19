@@ -1,4 +1,4 @@
-{ config, pkgs, ... }: {
+{ pkgs, ... }: {
   imports = [
     ./hm-modules/ags.nix
     ./hm-modules/git.nix
@@ -13,6 +13,8 @@
 
   home.packages = with pkgs; [
     spotify
+    protonvpn-gui
+    logisim
 
     corefonts
     sway-contrib.grimshot
