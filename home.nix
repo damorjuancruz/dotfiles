@@ -1,6 +1,6 @@
 { pkgs, ... }: {
   imports = [
-    ./hm-modules/ags.nix
+    ./hm-modules/waybar.nix
     ./hm-modules/git.nix
     ./hm-modules/ssh.nix
     ./hm-modules/xdg.nix
