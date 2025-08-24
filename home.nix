@@ -1,5 +1,6 @@
-{ pkgs, ... }: {
+{ config, pkgs, lib, ... }: {
   imports = [
+    ./hm-modules/options.nix
     ./hm-modules/waybar.nix
     ./hm-modules/git.nix
     ./hm-modules/ssh.nix
@@ -48,6 +49,7 @@
     killall
     alacritty
     tmux
+    # neovim
     hyprpaper
     wlsunset
     nwg-bar
