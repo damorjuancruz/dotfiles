@@ -25,7 +25,7 @@
     nix-output-monitor
 
     networkmanagerapplet
-    polkit-kde-agent
+    kdePackages.polkit-kde-agent-1
     gparted
     remmina
 
