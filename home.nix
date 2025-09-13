@@ -1,4 +1,10 @@
-{ config, pkgs, lib, ... }: {
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
+{
   imports = [
     ./hm-modules/options.nix
     ./hm-modules/waybar.nix
@@ -37,7 +43,6 @@
     firefox
     libnotify
     google-chrome
-    neovide
     fuzzel
     cargo
     beeper

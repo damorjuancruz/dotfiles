@@ -1,7 +1,9 @@
 { config, pkgs, ... }:
 let
-  lspPkgs = with pkgs; [
+  langPkgs = with pkgs; [
     lua-language-server
+    nil
+    nixfmt-rfc-style
   ];
 
   buildTools = with pkgs; [
@@ -46,9 +48,9 @@ in
     withNodeJs = true;
     withPython3 = true;
 
-    extraPackages = lspPkgs ++ buildTools ++ tools;
+    extraPackages = langPkgs ++ buildTools ++ tools;
   };
 
-  xdg.configFile.lazyvim.source = config.lib.file.mkOutOfStoreSymlink "${config.dotfiles-path}/hm-modules/sources/nvim";
+  xdg.configFile.nvim.source = config.lib.file.mkOutOfStoreSymlink "${config.dotfiles-path}/hm-modules/sources/nvim";
   xdg.configFile."lazygit/config.yml".text = "";
 }
