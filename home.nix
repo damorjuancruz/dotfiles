@@ -7,6 +7,7 @@
     ./hm-modules/xdg.nix
     ./hm-modules/cursor.nix
     ./hm-modules/nvim.nix
+    ./hm-modules/tmux.nix
   ];
 
   home.username = "jcdamor";
