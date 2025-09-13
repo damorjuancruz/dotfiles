@@ -1,0 +1,22 @@
+[default_session]
+preview_command = "eza --all --git --icons --color=always {}"
+
+[[session]]
+name = "dotfiles"
+path = "~/dotfiles"
+startup_command = "nvim"
+
+[[session]]
+name = "notes"
+path = "~/documents/notes"
+startup_command = "nvim"
+
+[[session]]
+name = "documents"
+path = "~/documents"
+startup_command = "ls" # TODO: yazi
+
+[[session]]
+name = "downloads"
+path = "~/downloads"
+startup_command = "ls" # TODO: yazi
