@@ -1,9 +1,4 @@
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}:
+{ pkgs, ... }:
 {
   imports = [
     ./hm-modules/options.nix
@@ -14,6 +9,7 @@
     ./hm-modules/cursor.nix
     ./hm-modules/nvim.nix
     ./hm-modules/tmux.nix
+    ./hm-modules/ghostty.nix
   ];
 
   home.username = "jcdamor";
@@ -53,9 +49,7 @@
     shotman
 
     killall
-    alacritty
     tmux
-    # neovim
     hyprpaper
     wlsunset
     nwg-bar
