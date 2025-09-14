@@ -10,6 +10,7 @@
     ./hm-modules/nvim.nix
     ./hm-modules/tmux.nix
     ./hm-modules/ghostty.nix
+    ./hm-modules/fish.nix
   ];
 
   home.username = "jcdamor";
@@ -54,23 +55,16 @@
     wlsunset
     nwg-bar
 
-    starship
-    fish
-    fastfetch
     tldr
-    eza
-    trash-cli
     unzip
     zip
     wl-clipboard
-    bat
     brightnessctl
 
     syncthing
     chezmoi
 
     jq
-    fzf
     nodejs_20
     git
     gnumake
