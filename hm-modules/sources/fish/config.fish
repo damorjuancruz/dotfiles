@@ -71,4 +71,11 @@ if status is-interactive
     if type -q starship
         starship init fish | source
     end
+
+    bind -M default ctrl-o "~/.config/sesh/run.sh"
+    bind -M insert ctrl-o "~/.config/sesh/run.sh"
+
+    if not set -q TMUX
+        ~/.config/sesh/run.sh
+    end
 end
