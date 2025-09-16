@@ -3,8 +3,8 @@
   home.pointerCursor = {
     gtk.enable = true;
     x11.enable = true;
-    name = "Qogir-dark Cursors";
-    package = pkgs.qogir-icon-theme;
-    size = 16;
+    name = "capitaine-cursors-white";
+    package = pkgs.capitaine-cursors;
+    size = 32;
   };
 }
