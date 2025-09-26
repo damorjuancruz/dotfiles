@@ -2,6 +2,7 @@
 
 {
   home.packages = with pkgs; [
+    tmux
     fzf
     bat
     eza

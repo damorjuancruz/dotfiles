@@ -11,6 +11,7 @@
     ./hm-modules/tmux.nix
     ./hm-modules/ghostty.nix
     ./hm-modules/fish.nix
+    ./hm-modules/hyprland.nix
   ];
 
   home.username = "jcdamor";
@@ -50,8 +51,6 @@
     shotman
 
     killall
-    tmux
-    hyprpaper
     wlsunset
     nwg-bar
 
