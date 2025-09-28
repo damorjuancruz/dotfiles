@@ -10,6 +10,7 @@
     ./os-modules/syncthing.nix
     ./os-modules/thunar.nix
     ./os-modules/bluetooth.nix
+    ./os-modules/virtualisation.nix
   ];
 
   services.udev.extraRules = ''
