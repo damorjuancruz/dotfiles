@@ -2,7 +2,7 @@
 {
   imports = [
     ./hm-modules/options.nix
-    ./hm-modules/waybar.nix
+    ./hm-modules/hyprpanel.nix
     ./hm-modules/git.nix
     ./hm-modules/ssh.nix
     ./hm-modules/xdg.nix
