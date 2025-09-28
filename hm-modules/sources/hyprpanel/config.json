@@ -1,0 +1,123 @@
+{
+  "bar.customModules.storage.paths": [
+    "/"
+  ],
+  "theme.font.size": "1rem",
+  "menus.transitionTime": 150,
+  "theme.bar.menus.enableShadow": false,
+  "scalingPriority": "gdk",
+  "theme.bar.floating": true,
+  "bar.layouts": {
+    "*": {
+      "left": [
+        "dashboard",
+        "workspaces",
+        "media"
+      ],
+      "middle": [
+        "clock"
+      ],
+      "right": [
+        "network",
+        "bluetooth",
+        "volume",
+        "battery",
+        "systray",
+        "notifications"
+      ]
+    }
+  },
+  "bar.autoHide": "never",
+  "theme.bar.buttons.enableBorders": false,
+  "theme.bar.border.location": "none",
+  "theme.bar.enableShadow": false,
+  "theme.bar.border_radius": "12px",
+  "theme.bar.outer_spacing": "1px",
+  "theme.bar.buttons.y_margins": "4px",
+  "theme.bar.buttons.spacing": "4px",
+  "theme.bar.buttons.padding_x": "10px",
+  "theme.bar.buttons.padding_y": "2px",
+  "theme.bar.buttons.radius": "8px",
+  "theme.bar.buttons.innerRadiusMultiplier": "0",
+  "theme.bar.margin_top": "8px",
+  "theme.bar.dropdownGap": "44px",
+  "theme.bar.margin_sides": "8px",
+  "theme.bar.margin_bottom": "0",
+  "theme.bar.buttons.separator.width": "0.1em",
+  "theme.bar.buttons.separator.margins": "0.15em",
+  "bar.launcher.icon": "󰣇",
+  "bar.launcher.autoDetectIcon": true,
+  "theme.bar.buttons.dashboard.enableBorder": false,
+  "theme.bar.buttons.workspaces.enableBorder": false,
+  "bar.workspaces.monitorSpecific": false,
+  "bar.workspaces.show_icons": false,
+  "bar.workspaces.show_numbered": false,
+  "bar.workspaces.workspaceMask": false,
+  "bar.workspaces.showWsIcons": false,
+  "bar.workspaces.showApplicationIcons": false,
+  "bar.workspaces.applicationIconOncePerWorkspace": true,
+  "bar.workspaces.showAllActive": false,
+  "theme.bar.buttons.workspaces.smartHighlight": true,
+  "theme.bar.buttons.workspaces.pill.width": "4em",
+  "theme.bar.buttons.workspaces.pill.active_width": "10em",
+  "theme.bar.buttons.windowtitle.enableBorder": false,
+  "bar.volume.label": true,
+  "bar.network.label": true,
+  "bar.network.showWifiInfo": true,
+  "bar.network.truncation_size": 7,
+  "bar.network.truncation": false,
+  "bar.bluetooth.label": true,
+  "bar.battery.hideLabelWhenFull": false,
+  "bar.systray.customIcons": {
+    "nm-applet": {
+      "icon": ""
+    },
+    "blueman": {
+      "icon": "󰂯"
+    },
+    "TelegramDesktop": {
+      "icon": ""
+    },
+    "chrome_status_icon_1": {
+      "icon": ""
+    },
+    "spotify-client": {
+      "icon": ""
+    }
+  },
+  "bar.clock.format": "%a %b %d  %H:%M",
+  "bar.clock.showIcon": true,
+  "bar.clock.showTime": true,
+  "bar.media.show_active_only": true,
+  "bar.media.show_label": true,
+  "bar.media.truncation": true,
+  "bar.notifications.show_total": false,
+  "bar.notifications.hideCountWhenZero": false,
+  "menus.media.hideAuthor": false,
+  "menus.media.hideAlbum": false,
+  "menus.media.displayTime": false,
+  "menus.media.displayTimeTooltip": false,
+  "theme.notification.border_radius": "8px",
+  "notifications.clearDelay": 100,
+  "notifications.timeout": 2000,
+  "notifications.showActionsOnHover": false,
+  "notifications.displayedTotal": 10,
+  "theme.osd.duration": 1000,
+  "theme.osd.orientation": "horizontal",
+  "theme.osd.location": "bottom",
+  "theme.osd.muted_zero": false,
+  "menus.volume.raiseMaximumVolume": false,
+  "menus.clock.time.military": true,
+  "menus.clock.time.hideSeconds": false,
+  "menus.clock.weather.unit": "metric",
+  "menus.clock.weather.location": "32.9587,60.6930",
+  "menus.clock.weather.enabled": false,
+  "menus.dashboard.controls.enabled": true,
+  "menus.dashboard.directories.left.directory1.command": "bash -c \"xdg-open $HOME/Downloads/\"",
+  "menus.dashboard.directories.left.directory2.command": "bash -c \"xdg-open $HOME/Videos/\"",
+  "menus.dashboard.directories.enabled": true,
+  "theme.bar.buttons.modules.microphone.enableBorder": false,
+  "theme.bar.menus.monochrome": false,
+  "wallpaper.pywal": false,
+  "wallpaper.enable": true
+}
