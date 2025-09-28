@@ -4,8 +4,5 @@
     hyprpaper
   ];
 
-  home.file.".config/hypr" = {
-    source = ./sources/hypr;
-    recursive = true;
-  };
+  xdg.configFile.hypr.source = ./sources/hypr;
 }
