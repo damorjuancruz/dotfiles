@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+cd ~/code && ls -d */ | xargs -I {} zoxide add {}
+
 sesh connect "$(
   sesh list --icons | fzf --tmux \
     --no-sort --ansi --border-label ' sesh ' --prompt '⚡  ' \
