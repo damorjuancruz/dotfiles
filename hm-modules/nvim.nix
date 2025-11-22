@@ -4,6 +4,9 @@ let
     lua-language-server
     nil
     nixfmt-rfc-style
+    tailwindcss-language-server
+    unstable.prisma-language-server
+    vtsls
   ];
 
   buildTools = with pkgs; [

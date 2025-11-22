@@ -2,6 +2,11 @@ return {
   "snacks.nvim",
   opts = {
     scroll = { enabled = false },
+    notifier = {
+      filter = function(notif)
+        return notif.msg ~= "No information available"
+      end
+    },
     dashboard = {
       sections = {
         { section = "header" },
