@@ -12,11 +12,7 @@ path = "~/documents/notes"
 startup_command = "nvim"
 
 [[session]]
-name = "documents"
-path = "~/documents"
+name = "home"
+path = "~"
 startup_command = "ls" # TODO: yazi
 
-[[session]]
-name = "downloads"
-path = "~/downloads"
-startup_command = "ls" # TODO: yazi

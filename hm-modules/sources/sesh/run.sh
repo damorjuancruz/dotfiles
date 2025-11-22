@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 sesh connect "$(
-  sesh list -t -c --icons | fzf --tmux \
+  sesh list --icons | fzf --tmux \
     --no-sort --ansi --border-label ' sesh ' --prompt '⚡  ' \
     --header '  ^a all ^t tmux ^g configs ^x zoxide ^d tmux kill ^f find' \
     --bind 'ctrl-a:change-prompt(⚡  )+reload(sesh list --icons)' \
