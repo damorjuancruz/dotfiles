@@ -1,5 +1,4 @@
-{ inputs, pkgs, ... }:
-
+{ pkgs, ... }:
 {
   programs.git = {
     enable = true;
@@ -26,5 +25,10 @@
       key = "~/.ssh/id_ed25519.pub";
     };
   };
-}
 
+  home.packages = with pkgs; [
+    lazygit
+  ];
+
+  xdg.configFile.lazygit.source = ./sources/lazygit;
+}

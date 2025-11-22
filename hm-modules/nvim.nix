@@ -52,5 +52,4 @@ in
   };
 
   xdg.configFile.nvim.source = config.lib.file.mkOutOfStoreSymlink "${config.dotfiles-path}/hm-modules/sources/nvim";
-  xdg.configFile."lazygit/config.yml".text = "";
 }
