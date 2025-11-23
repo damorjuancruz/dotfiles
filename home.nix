@@ -64,7 +64,6 @@
     chezmoi
 
     jq
-    nodejs_20
     git
     gnumake
     telegram-desktop
