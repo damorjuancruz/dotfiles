@@ -497,5 +497,6 @@
   "theme.bar.buttons.modules.worldclock.background": "#242438",
   "theme.bar.buttons.modules.worldclock.icon_background": "#f5c2e7",
   "theme.bar.buttons.modules.worldclock.icon": "#f5c2e7",
-  "theme.bar.buttons.modules.worldclock.border": "#f5c2e7"
+  "theme.bar.buttons.modules.worldclock.border": "#f5c2e7",
+  "menus.transition": "crossfade"
 }

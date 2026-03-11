@@ -18,6 +18,8 @@
   home.homeDirectory = "/home/jcdamor";
 
   home.packages = with pkgs; [
+    ffmpeg
+
     spotify
     protonvpn-gui
     logisim
