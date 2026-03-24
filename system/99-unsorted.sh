@@ -145,7 +145,6 @@ IgnorePackage wget                           # Network utility to retrieve files
 IgnorePackage which                          # A utility to show the full path of commands
 IgnorePackage wireplumber                    # Session / policy manager implementation for PipeWire
 IgnorePackage wpa_supplicant                 # A utility providing key negotiation for WPA wireless networks
-IgnorePackage xdg-user-dirs                  # Manage user directories like ~/Desktop and ~/Music
 IgnorePackage xfsprogs                       # XFS filesystem utilities
 IgnorePackage xl2tpd                         # an open source implementation of the L2TP maintained by Xelerance Corporation
 IgnorePackage mailcap                        # Helper application and MIME type associations for file types

@@ -41,3 +41,4 @@ AddPackage btop                   # A monitor of system resources, bpytop ported
 AddPackage fastfetch              # A feature-rich and performance oriented neofetch like system information tool
 AddPackage curl                   # command line tool and library for transferring data with URLs
 AddPackage fnm                    # Fast and simple Node.js version manager, built with Rust
+AddPackage xdg-user-dirs          # Manage user directories like ~/Desktop and ~/Music

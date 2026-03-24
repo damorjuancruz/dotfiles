@@ -24,7 +24,7 @@ zinit snippet OMZP::sudo
 zinit snippet OMZP::command-not-found # requires updating the pkgfile db with `pkgfile -u`
 
 # Load completions
-autoload -Uz compinit && compinit
+autoload -Uz compinit && compinit -d "${ZSH_CACHE_DIR}/.zcompdump"
 
 zinit cdreplay -q
 
