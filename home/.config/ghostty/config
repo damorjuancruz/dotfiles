@@ -54,4 +54,4 @@ window-padding-color = extend
 resize-overlay-duration = 0s
 confirm-close-surface = false
 mouse-hide-while-typing = true
-
+window-inherit-working-directory = false

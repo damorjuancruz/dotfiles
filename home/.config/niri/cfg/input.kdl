@@ -11,7 +11,12 @@ input {
         numlock // Enable numlock on startup
     }
 
+    mouse {
+        accel-profile "flat"
+    }
+
     touchpad {
+        accel-profile "flat"
         tap // Enable tap-to-click
         natural-scroll // Enable natural (macOS-style) scrolling
     }
