@@ -452,10 +452,10 @@
     "hooks": {
         "colorGeneration": "",
         "darkModeChange": "",
-        "enabled": false,
+        "enabled": true,
         "performanceModeDisabled": "",
         "performanceModeEnabled": "",
-        "screenLock": "",
+        "screenLock": "ssh-add -D",
         "screenUnlock": "",
         "session": "",
         "startup": "",
