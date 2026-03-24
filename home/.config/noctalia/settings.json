@@ -676,7 +676,7 @@
     },
     "wallpaper": {
         "automationEnabled": false,
-        "directory": "/home/jcdamor/Pictures/Wallpapers",
+        "directory": "/home/jcdamor/pictures/wallpapers",
         "enableMultiMonitorDirectories": false,
         "enabled": true,
         "favorites": [
@@ -685,9 +685,19 @@
         "fillMode": "crop",
         "hideWallpaperFilenames": true,
         "monitorDirectories": [
+            {
+                "directory": "/home/jcdamor/pictures/wallpapers",
+                "name": "eDP-1",
+                "wallpaper": ""
+            },
+            {
+                "directory": "/home/jcdamor/pictures/wallpapers",
+                "name": "HDMI-A-1",
+                "wallpaper": ""
+            }
         ],
-        "overviewBlur": 0.4,
-        "overviewEnabled": false,
+        "overviewBlur": 0.6,
+        "overviewEnabled": true,
         "overviewTint": 0.6,
         "panelPosition": "follow_bar",
         "randomIntervalSec": 300,
