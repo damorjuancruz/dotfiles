@@ -10,3 +10,4 @@ AddPackage --foreign google-chrome # The popular web browser by Google (Stable C
 AddPackage ghostty                 # Fast, native, feature-rich terminal emulator pushing modern features
 AddPackage telegram-desktop        # Official Telegram Desktop client
 AddPackage vesktop                 # A standalone Electron-based Discord app with Vencord & improved Linux support
+AddPackage spotify-launcher        # Client for spotify's apt repository in Rust for Arch Linux
