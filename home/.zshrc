@@ -61,6 +61,7 @@ zstyle ':fzf-tab:*' fzf-command ftb-tmux-popup
 # Shell integrations
 eval "$(fzf --zsh)"
 eval "$(zoxide init --cmd cd zsh)"
+eval "$(fnm env --use-on-cd --version-file-strategy=recursive --resolve-engines --shell zsh)"
 
 # Aliases
 alias eza="eza --color=always --group-directories-first --icons --git" # settings
