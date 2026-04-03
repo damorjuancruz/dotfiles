@@ -16,6 +16,9 @@
 [gpg]
     format = ssh
 
+[gpg "ssh"]
+	program = ~/.ssh/sign-and-add-to-agent.sh
+
 [commit]
     gpgsign = true
 
