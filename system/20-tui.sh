@@ -16,6 +16,15 @@ AddPackage trash-cli # Command line trashcan (recycle bin) interface
 AddPackage zoxide    # A smarter cd command for your terminal
 AddPackage vivid     # LS_COLORS manager with multiple themes
 
+# Tmux Dependencies
+AddPackage tmux               # Terminal multiplexer
+AddPackage --foreign sesh-bin # Smart session manager for the terminal
+AddPackage fzf                # Command-line fuzzy finder
+AddPackage bat                # Cat clone with syntax highlighting and git integration
+AddPackage eza                # A modern replacement for ls (community fork of exa)
+AddPackage zoxide             # A smarter cd command for your terminal
+AddPackage fd                 # Simple, fast and user-friendly alternative to find
+
 # Neovim Dependencies
 RemovePackage vim
 RemovePackage micro

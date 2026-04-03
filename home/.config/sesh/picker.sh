@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
+pick_only=false
+
+case "${1:-}" in
+-p | --pick-only)
+  pick_only=true
+  ;;
+esac
+
 cd ~/code && ls -d */ | xargs -I {} zoxide add {}
 
-sesh connect "$(
-  sesh list --icons | fzf --tmux \
+selection="$(
+  sesh list --icons | fzf --tmux=center,80%,70% \
     --no-sort --ansi --border-label ' sesh ' --prompt '⚡  ' \
     --header '  ^a all ^t tmux ^g configs ^x zoxide ^d tmux kill ^f find' \
     --bind 'ctrl-a:change-prompt(⚡  )+reload(sesh list --icons)' \
@@ -15,3 +25,11 @@ sesh connect "$(
     --preview-window 'right:55%' \
     --preview 'sesh preview {}'
 )"
+
+if [[ -n "$selection" ]]; then
+  if $pick_only; then
+    echo $selection
+  else
+    sesh connect "$selection"
+  fi
+fi

@@ -79,5 +79,30 @@ alias less="less -MNi" # file info/position, line number, smart case for searchi
 alias paru-r="paru -Rns" # remove packages
 alias paru-c="paru -Rns \$(paru -Qdtq)" # cleanup
 
+# Sesh
+if [[ -z "$TMUX" ]]; then
+  # Keybind
+  function sesh-sessions() {
+    exec </dev/tty
+    exec <&1
+    local session
+    session=$(~/.config/sesh/picker.sh -p)
+    zle reset-prompt > /dev/null 2>&1 || true
+    [[ -z "$session" ]] && return
+    sesh connect $session
+  }
+  zle -N sesh-sessions
+  bindkey -M emacs '^o' sesh-sessions
+  bindkey -M vicmd '^o' sesh-sessions
+  bindkey -M viins '^o' sesh-sessions
+
+  # Autorun
+  local session
+  session=$(~/.config/sesh/picker.sh -p)
+  if [[ -n "$session" ]]; then
+    exec sesh connect $session
+  fi
+fi
+
 # Prompt
 eval "$(starship init zsh)"
