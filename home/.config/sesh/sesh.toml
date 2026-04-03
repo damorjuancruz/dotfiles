@@ -1,25 +1,18 @@
 #:schema https://github.com/joshmedeski/sesh/raw/main/sesh.schema.json
 
 [default_session]
-preview_command = "eza --all --git --icons --color=always {}"
-
-[[session]]
-name = "dotfiles"
-path = "~/dotfiles"
-startup_command = "nvim"
-
-[[session]]
-name = "notes"
-path = "~/documents/notes"
-startup_command = "nvim"
-
-[[session]]
-name = "home"
-path = "~"
-startup_command = "ls" # TODO: yazi
+preview_command = "eza --all --icons --color=always {}"
 
 [[wildcard]]
 pattern = "~/code/*"
+startup_command = "nvim"
+
+[[wildcard]]
+pattern = "~/dotfiles"
+startup_command = "nvim"
+
+[[wildcard]]
+pattern = "~/documents/notes"
 startup_command = "nvim"
 
 # TODO: windows (waiting for support of wildcards + windows to reach a stable release)
