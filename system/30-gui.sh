@@ -1,6 +1,7 @@
 # Niri & Noctalia
-AddPackage cachyos-niri-noctalia # CachyOS Niri (+Noctalia) settings
-AddPackage wlsunset              # Day/night gamma adjustments for Wayland compositors
+AddPackage cachyos-niri-noctalia         # CachyOS Niri (+Noctalia) settings
+AddPackage wlsunset                      # Day/night gamma adjustments for Wayland compositors
+AddPackage --foreign bibata-cursor-theme # Material Based Cursor Theme
 
 # Apps
 RemovePackage alacritty
