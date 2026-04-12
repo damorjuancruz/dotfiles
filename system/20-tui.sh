@@ -51,3 +51,5 @@ AddPackage fastfetch              # A feature-rich and performance oriented neof
 AddPackage curl                   # command line tool and library for transferring data with URLs
 AddPackage fnm                    # Fast and simple Node.js version manager, built with Rust
 AddPackage xdg-user-dirs          # Manage user directories like ~/Desktop and ~/Music
+AddPackage --foreign opencode-bin # The AI coding agent built for the terminal.
+AddPackage github-cli             # The GitHub CLI
