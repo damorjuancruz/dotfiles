@@ -3,6 +3,5 @@
   "theme": "catppuccin",
   "keybinds": {
     "model_cycle_favorite": "alt+m",
-    "model_cycle_favorite_reverse": "alt+shift+m"
   }
 }

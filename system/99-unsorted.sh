@@ -149,3 +149,4 @@ IgnorePackage xfsprogs                       # XFS filesystem utilities
 IgnorePackage xl2tpd                         # an open source implementation of the L2TP maintained by Xelerance Corporation
 IgnorePackage mailcap                        # Helper application and MIME type associations for file types
 IgnorePackage python-gobject                 # Python bindings for GLib/GObject/GIO/GTK
+IgnorePackage iptables                       # Linux kernel packet control tool (using nft interface)

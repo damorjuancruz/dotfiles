@@ -40,8 +40,9 @@ AddPackage luarocks        # Deployment and management system for Lua modules
 AddPackage ripgrep         # A search tool that combines the usability of ag with the raw speed of grep
 AddPackage fd              # Simple, fast and user-friendly alternative to find
 AddPackage tree-sitter-cli # CLI tool for developing, testing, and using Tree-sitter parsers
+AddPackage lsof            # Lists open files for running Unix processes
 
-# Utils
+# Other
 AddPackage --foreign aconfmgr-git # A configuration manager for Arch Linux
 AddPackage stow                   # Manage installation of multiple softwares in the same directory tree
 AddPackage paru                   # Feature packed AUR helper
@@ -53,3 +54,7 @@ AddPackage fnm                    # Fast and simple Node.js version manager, bui
 AddPackage xdg-user-dirs          # Manage user directories like ~/Desktop and ~/Music
 AddPackage --foreign opencode-bin # The AI coding agent built for the terminal.
 AddPackage github-cli             # The GitHub CLI
+AddPackage go                     # Core compiler tools for the Go programming language
+AddPackage golangci-lint          # Fast linters runner for Go
+AddPackage bun                    # Incredibly fast JavaScript runtime, bundler, test runner, and package manager – all in one
+AddPackage --foreign engram-bin   # Persistent memory system for AI coding agents - SQLite + FTS5 with MCP server, HTTP API, CLI, and TUI

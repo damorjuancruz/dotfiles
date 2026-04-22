@@ -1,0 +1,80 @@
+{
+  "version": 3,
+  "skills": {
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/skills.git",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "skillFolderHash": "3013fdeb8a11b10b1eb795ec3ae8bfca38f7c26d",
+      "installedAt": "2026-04-18T21:13:50.192Z",
+      "updatedAt": "2026-04-18T21:15:51.360Z"
+    },
+    "grill-me": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "grill-me/SKILL.md",
+      "skillFolderHash": "2a1ad17028306ebe45f0e49703fa28b9b2e7f499",
+      "installedAt": "2026-04-18T21:18:53.276Z",
+      "updatedAt": "2026-04-18T21:18:53.276Z"
+    },
+    "to-prd": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "to-prd/SKILL.md",
+      "skillFolderHash": "e031bc9bba9b213f044ee59f3fd4ff2feeacbaf6",
+      "installedAt": "2026-04-18T21:19:39.151Z",
+      "updatedAt": "2026-04-18T21:19:39.151Z"
+    },
+    "to-issues": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "to-issues/SKILL.md",
+      "skillFolderHash": "5f1079ac639dbf09081653c265a132eb5ec4dc4d",
+      "installedAt": "2026-04-18T21:19:56.243Z",
+      "updatedAt": "2026-04-18T21:19:56.243Z"
+    },
+    "tdd": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "tdd/SKILL.md",
+      "skillFolderHash": "28d7822c112f22cf499099881856fdec07bc83a8",
+      "installedAt": "2026-04-18T21:20:09.201Z",
+      "updatedAt": "2026-04-18T21:20:09.201Z"
+    },
+    "improve-codebase-architecture": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "improve-codebase-architecture/SKILL.md",
+      "skillFolderHash": "78b2029cbf4a74fa798c97ea27bc02bdeb2e3237",
+      "installedAt": "2026-04-18T21:20:17.181Z",
+      "updatedAt": "2026-04-18T21:20:17.181Z"
+    },
+    "write-a-skill": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/mattpocock/skills.git",
+      "skillPath": "write-a-skill/SKILL.md",
+      "skillFolderHash": "2f252b35aa238879afc5a230ac30343708dee0b3",
+      "installedAt": "2026-04-18T23:31:07.957Z",
+      "updatedAt": "2026-04-18T23:31:07.957Z"
+    },
+    "btca-cli": {
+      "source": "davis7dotsh/better-context",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/davis7dotsh/better-context.git",
+      "skillPath": "skills/btca-cli/SKILL.md",
+      "skillFolderHash": "47a9ec57ae3ce030be4180ae39f2a1c0e992c5b0",
+      "installedAt": "2026-04-20T19:02:40.264Z",
+      "updatedAt": "2026-04-20T19:41:07.301Z"
+    }
+  },
+  "dismissed": {
+    "findSkillsPrompt": true
+  }
+}
