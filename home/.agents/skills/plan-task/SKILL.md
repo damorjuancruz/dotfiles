@@ -5,6 +5,8 @@ description: Explore the codebase and interview the user relentlessly about a pl
 
 Explore the codebase using multiple @explore subagents in parallel to understand the context of the task.
 
-Then, interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions. For each question, provide your recommended answer.
+Then, interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one at a time. For each question, provide your recommended answer.
 
-Ask the questions in batches. Doing multiple batches is encouraged. If an answer generates more questions, keep exploring the codebase and asking questions.
+Ask the questions one by one using the question tool. Asking many questions is encouraged. If an answer generates more questions, keep exploring the codebase and asking questions.
+
+Do not ask questions that have already been answered.

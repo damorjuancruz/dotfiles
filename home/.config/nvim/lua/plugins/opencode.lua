@@ -32,7 +32,7 @@ return {
     local snacks_terminal_opts = {
       win = {
         position = "right",
-        enter = false,
+        enter = true,
         on_win = function(win)
           -- Set up keymaps and cleanup for an arbitrary terminal
           require("opencode.terminal").setup(win.win)
@@ -63,7 +63,7 @@ return {
     vim.keymap.set({ "n", "x" }, "<C-x>", function()
       require("opencode").select()
     end, { desc = "Execute opencode action…" })
-    vim.keymap.set({ "n", "t" }, "<C-.>", function()
+    vim.keymap.set({ "n", "t" }, "<C-.>", function() -- FIX: does not work in tmux
       require("opencode").toggle()
     end, { desc = "Toggle opencode" })
 

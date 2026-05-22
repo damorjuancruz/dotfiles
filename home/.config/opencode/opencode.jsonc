@@ -5,7 +5,7 @@
   },
   "agent": {
     "explore": {
-      "model": "opencode/minimax-m2.5-free"
+      "model": "opencode/big-pickle"
     }
   },
   "mcp": {
