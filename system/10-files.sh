@@ -7,6 +7,7 @@ white_list=(
   'etc/security/faillock.conf'
   'etc/pam.d/system-auth'
   'etc/systemd/system/polkit-agent-helper@.service.d/override.conf'
+  'etc/sddm.conf.d/autologin.conf'
 )
 IgnorePathsExcept "/" "${white_list[@]}"
 
@@ -14,3 +15,4 @@ CopyFile /etc/pacman.conf
 CopyFile /etc/security/faillock.conf
 CopyFile /etc/pam.d/system-auth
 CopyFile /etc/systemd/system/polkit-agent-helper@.service.d/override.conf
+CopyFile /etc/sddm.conf.d/autologin.conf

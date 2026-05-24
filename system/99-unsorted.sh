@@ -119,7 +119,6 @@ IgnorePackage rebuild-detector               # Detects which packages need to be
 IgnorePackage reflector                      # A Python 3 module and script to retrieve and filter the latest Pacman mirror list.
 IgnorePackage rsync                          # A fast and versatile file copying tool for remote and local files
 IgnorePackage s-nail                         # Environment for sending and receiving mail
-IgnorePackage sddm                           # QML based X11 and Wayland display manager
 IgnorePackage sg3_utils                      # Generic SCSI utilities
 IgnorePackage smartmontools                  # Control and monitor S.M.A.R.T. enabled ATA and SCSI Hard Drives
 IgnorePackage snapper                        # A tool for managing BTRFS and LVM snapshots

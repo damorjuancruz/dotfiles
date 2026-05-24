@@ -10,3 +10,5 @@ sudo ~/.config/noctalia/plugins/battery-threshold/setup_rules.sh
 systemctl --user enable --now ssh-agent
 bun add -g btca
 ```
+
+Open seahorse and set the password for the Login keyring to blank.

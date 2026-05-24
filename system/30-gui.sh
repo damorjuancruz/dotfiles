@@ -1,12 +1,13 @@
+# Display Manager
+AddPackage sddm # QML based X11 and Wayland display manager
+
 # Niri & Noctalia
 AddPackage cachyos-niri-noctalia         # CachyOS Niri (+Noctalia) settings
 AddPackage wlsunset                      # Day/night gamma adjustments for Wayland compositors
 AddPackage --foreign bibata-cursor-theme # Material Based Cursor Theme
 
 # Apps
-RemovePackage alacritty
-RemovePackage firefox
-RemovePackage meld
+AddPackage seahorse                # GNOME application for managing PGP keys
 AddPackage --foreign google-chrome # The popular web browser by Google (Stable Channel)
 AddPackage ghostty                 # Fast, native, feature-rich terminal emulator pushing modern features
 AddPackage telegram-desktop        # Official Telegram Desktop client

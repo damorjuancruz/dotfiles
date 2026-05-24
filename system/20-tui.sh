@@ -1,11 +1,4 @@
 # ZSH Dependencies
-RemovePackage cachyos-zsh-config
-RemovePackage oh-my-zsh-git
-RemovePackage zsh-autosuggestions
-RemovePackage zsh-completions
-RemovePackage zsh-history-substring-search
-RemovePackage zsh-syntax-highlighting
-RemovePackage zsh-theme-powerlevel10k
 AddPackage zsh       # A very advanced and programmable command interpreter (shell) for UNIX
 AddPackage starship  # The cross-shell prompt for astronauts
 AddPackage bat       # Cat clone with syntax highlighting and git integration
@@ -26,9 +19,6 @@ AddPackage zoxide             # A smarter cd command for your terminal
 AddPackage fd                 # Simple, fast and user-friendly alternative to find
 
 # Neovim Dependencies
-RemovePackage vim
-RemovePackage micro
-RemovePackage cachyos-micro-settings
 AddPackage neovim          # Fork of Vim aiming to improve user experience, plugins, and GUIs
 AddPackage clang           # C language family frontend for LLVM
 AddPackage fzf             # Command-line fuzzy finder
@@ -58,3 +48,4 @@ AddPackage go                     # Core compiler tools for the Go programming l
 AddPackage golangci-lint          # Fast linters runner for Go
 AddPackage bun                    # Incredibly fast JavaScript runtime, bundler, test runner, and package manager – all in one
 AddPackage --foreign engram-bin   # Persistent memory system for AI coding agents - SQLite + FTS5 with MCP server, HTTP API, CLI, and TUI
+AddPackage --foreign lazysql-bin  # A cross-platform TUI database management tool written in Go
