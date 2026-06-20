@@ -5,14 +5,22 @@ preview_command = "eza --all --icons --color=always {}"
 
 [[wildcard]]
 pattern = "~/code/*"
-startup_command = "nvim"
+startup_command = "exec nvim"
+windows = ["opencode", "zsh"]
 
 [[wildcard]]
 pattern = "~/dotfiles"
-startup_command = "nvim"
+startup_command = "exec nvim"
+windows = ["zsh"]
 
 [[wildcard]]
 pattern = "~/documents/notes"
-startup_command = "nvim"
+startup_command = "exec nvim"
 
-# TODO: windows (waiting for support of wildcards + windows to reach a stable release)
+[[window]]
+name = "opencode"
+startup_script = "exec opencode"
+
+[[window]]
+name = "zsh"
+startup_script = "clear"
