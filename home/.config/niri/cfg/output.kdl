@@ -1,0 +1,6 @@
+output "eDP-1" {
+}
+
+output "HDMI-A-1" {
+  focus-at-startup
+}
