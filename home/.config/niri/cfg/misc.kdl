@@ -29,3 +29,13 @@ cursor {
 clipboard {
   disable-primary
 }
+
+gestures {
+  hot-corners {
+    off
+  }
+}
+
+recent-windows {
+  off
+}

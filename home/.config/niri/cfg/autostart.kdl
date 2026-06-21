@@ -1,1 +1,4 @@
 spawn-sh-at-startup "qs -c noctalia-shell"
+spawn-sh-at-startup "Telegram -startintray"
+spawn-sh-at-startup "discord --start-minimized"
+spawn-sh-at-startup "spotify-launcher & sleep 2 && niri msg action close-window --id $(niri msg -j windows | jq 'map(select(.app_id == \"Spotify\"))[0].id')"
