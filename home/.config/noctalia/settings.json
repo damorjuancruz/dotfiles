@@ -426,12 +426,12 @@
         "iRadiusRatio": 1,
         "keybinds": {
             "keyDown": [
-                "Down",
-                "Ctrl+J"
+                "Ctrl+J",
+                "Ctrl+N"
             ],
             "keyEnter": [
                 "Return",
-                "Enter"
+                "Ctrl+Y"
             ],
             "keyEscape": [
                 "Esc"
@@ -449,8 +449,8 @@
                 "Ctrl+L"
             ],
             "keyUp": [
-                "Up",
-                "Ctrl+K"
+                "Ctrl+K",
+                "Ctrl+P"
             ]
         },
         "language": "",
@@ -589,8 +589,8 @@
         "overlayLayer": true
     },
     "plugins": {
-        "autoUpdate": false,
-        "notifyUpdates": true
+        "autoUpdate": true,
+        "notifyUpdates": false
     },
     "sessionMenu": {
         "countdownDuration": 10000,
