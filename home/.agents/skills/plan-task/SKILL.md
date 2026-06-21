@@ -7,6 +7,6 @@ Explore the codebase using multiple @explore subagents in parallel to understand
 
 Then, interview me relentlessly about every aspect of this plan until we reach a shared understanding. Walk down each branch of the design tree, resolving dependencies between decisions one at a time. For each question, provide your recommended answer.
 
-Ask the questions one by one using the question tool. Asking many questions is encouraged. If an answer generates more questions, keep exploring the codebase and asking questions.
+Ask the questions one by one using the question tool. Asking many questions is encouraged. If an answer generates more questions, keep exploring the codebase and asking questions, until every branch of the decision tree is resolved.
 
 Do not ask questions that have already been answered.

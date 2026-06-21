@@ -3,9 +3,10 @@
   "experimental": {
     "continue_loop_on_deny": true
   },
+  "lsp": true,
   "agent": {
     "explore": {
-      "model": "opencode/big-pickle"
+      "model": "opencode/mimo-v2.5-free"
     }
   },
   "mcp": {
