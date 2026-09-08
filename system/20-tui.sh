@@ -43,6 +43,7 @@ AddPackage curl                   # command line tool and library for transferri
 AddPackage fnm                    # Fast and simple Node.js version manager, built with Rust
 AddPackage xdg-user-dirs          # Manage user directories like ~/Desktop and ~/Music
 AddPackage --foreign opencode-bin # The AI coding agent built for the terminal.
+AddPackage claude-code            # An agentic coding tool that lives in your terminal
 AddPackage github-cli             # The GitHub CLI
 AddPackage go                     # Core compiler tools for the Go programming language
 AddPackage golangci-lint          # Fast linters runner for Go

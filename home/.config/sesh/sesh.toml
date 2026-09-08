@@ -6,7 +6,7 @@ preview_command = "eza --all --icons --color=always {}"
 [[wildcard]]
 pattern = "~/code/*"
 startup_command = "exec nvim"
-windows = ["opencode", "zsh"]
+windows = ["claude", "zsh"]
 
 [[wildcard]]
 pattern = "~/dotfiles"
@@ -18,8 +18,8 @@ pattern = "~/documents/notes"
 startup_command = "exec nvim"
 
 [[window]]
-name = "opencode"
-startup_script = "exec opencode"
+name = "claude"
+startup_script = "exec claude"
 
 [[window]]
 name = "zsh"
