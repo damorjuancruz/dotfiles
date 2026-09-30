@@ -4,6 +4,8 @@ ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
 source "${ZINIT_HOME}/zinit.zsh"
 
 # Env
+export ANDROID_HOME="${HOME}/Android/Sdk" 
+
 # Catppuccin Mocha theme
 export FZF_DEFAULT_OPTS=" \
 --color=bg+:#313244,bg:#1E1E2E,spinner:#F5E0DC,hl:#F38BA8 \
@@ -79,6 +81,7 @@ alias free="free -h" # human readable
 alias less="less -MNi" # file info/position, line number, smart case for searching
 alias paru-r="paru -Rns" # remove packages
 alias paru-c="paru -Rns \$(paru -Qdtq)" # cleanup
+alias sail="[ -f sail ] && sudo sh sail || sudo sh vendor/bin/sail"
 
 # Sesh
 if [[ -z "$TMUX" ]]; then

@@ -21,6 +21,5 @@
 
 [commit]
     gpgsign = true
-
-[remote "origin"]
-    prone = true
+[fetch]
+	prune = true
