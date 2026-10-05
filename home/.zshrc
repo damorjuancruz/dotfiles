@@ -81,7 +81,7 @@ alias free="free -h" # human readable
 alias less="less -MNi" # file info/position, line number, smart case for searching
 alias paru-r="paru -Rns" # remove packages
 alias paru-c="paru -Rns \$(paru -Qdtq)" # cleanup
-alias sail="[ -f sail ] && sudo sh sail || sudo sh vendor/bin/sail"
+alias sail='sh $([ -f sail ] && echo sail || echo vendor/bin/sail)'
 
 # Sesh
 if [[ -z "$TMUX" ]]; then

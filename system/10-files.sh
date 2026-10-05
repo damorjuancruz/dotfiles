@@ -14,6 +14,7 @@ white_list=(
   'etc/udev/rules.d/60-libfprint-2-goodix-55a4.rules'
   'etc/subuid'
   'etc/subgid'
+  'etc/containers/nodocker'
 )
 IgnorePathsExcept "/" "${white_list[@]}"
 
@@ -28,5 +29,6 @@ CopyFile /etc/subgid
 CopyFile /etc/subuid
 CopyFile /etc/udev/rules.d/60-libfprint-2-goodix-55a4.rules
 CopyFile /etc/pacman.conf
+CreateFile /etc/containers/nodocker > /dev/null
 
 SetFileProperty / mode 555

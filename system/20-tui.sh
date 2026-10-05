@@ -54,8 +54,11 @@ AddPackage --foreign engram-bin      # Persistent memory system for AI coding ag
 AddPackage --foreign lazysql-bin     # A cross-platform TUI database management tool written in Go
 AddPackage android-tools             # Android platform tools
 AddPackage --foreign posthog-cli-bin # PostHog CLI tool for feature flags, experiments, and analytics
-AddPackage docker                    # Pack, ship and run any application as a lightweight container
-AddPackage docker-compose            # Fast, isolated development environments using Docker
 AddPackage jdk21-openjdk             # OpenJDK Java 21 development kit
-AddPackage lazydocker                # A simple terminal UI for docker and docker-compose, written in Go with the gocui library.
 AddPackage php                       # A general-purpose scripting language that is especially suited to web development
+
+# Containers (Podman rootless con CLI de Docker)
+AddPackage podman         # Tool and library for running OCI-based containers in pods
+AddPackage podman-docker  # Emulate Docker CLI using podman
+AddPackage docker-compose # Fast, isolated development environments using Docker
+AddPackage lazydocker     # A simple terminal UI for docker and docker-compose
