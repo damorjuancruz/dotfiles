@@ -1,6 +1,5 @@
 layout {
   gaps 16
-  center-focused-column "on-overflow"
   always-center-single-column
 
   background-color "transparent" // <- needed for noctalia-shell to set wallpaper

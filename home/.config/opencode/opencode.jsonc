@@ -1,29 +1,18 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "experimental": {
-    "continue_loop_on_deny": true
+    "continue_loop_on_deny": true,
   },
   "lsp": true,
   "agent": {
     "explore": {
-      "model": "opencode/mimo-v2.5-free"
-    }
-  },
-  "mcp": {
-    "engram": {
-      "command": [
-        "/usr/bin/engram",
-        "mcp",
-        "--tools=agent"
-      ],
-      "enabled": true,
-      "type": "local"
-    }
+      "model": "openai/gpt-6-luna",
+    },
   },
   "snapshot": false,
   "permission": {
     "bash": {
-      "npx skills*": "ask"
-    }
-  }
+      "npx skills*": "ask",
+    },
+  },
 }

@@ -25,6 +25,6 @@ input {
     dwt
   }
 
-  focus-follows-mouse max-scroll-amount="0%"
+  focus-follows-mouse
   warp-mouse-to-focus mode="center-xy-always"
 }

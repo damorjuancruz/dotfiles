@@ -16,3 +16,5 @@ CopyFile /etc/security/faillock.conf
 CopyFile /etc/pam.d/system-auth
 CopyFile /etc/systemd/system/polkit-agent-helper@.service.d/override.conf
 CopyFile /etc/sddm.conf.d/autologin.conf
+
+SetFileProperty / mode 555

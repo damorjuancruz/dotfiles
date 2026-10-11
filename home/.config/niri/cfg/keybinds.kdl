@@ -82,15 +82,17 @@ binds {
   Mod+CTRL+Shift+WheelScrollUp                   { move-column-left; }
 
   // ─── Layout Controls ───
-  Mod+CTRL+F      { expand-column-to-available-width; }
-  Mod+C           { center-column; }
-  Mod+CTRL+C      { center-visible-columns; }
-  Mod+Minus       { set-column-width "-10%"; }
-  Mod+Equal       { set-column-width "+10%"; }
-  Mod+Shift+Minus { set-window-height "-10%"; }
-  Mod+Shift+Equal { set-window-height "+10%"; }
-  Mod+R           { switch-preset-column-width; }
-  Mod+Ctrl+R     { switch-preset-window-height; }
+  Mod+CTRL+F       { expand-column-to-available-width; }
+  Mod+C            { center-column; }
+  Mod+CTRL+C       { center-visible-columns; }
+  Mod+Shift+H      { set-column-width "-10%"; }
+  Mod+Shift+L      { set-column-width "+10%"; }
+  Mod+Shift+J      { set-window-height "-10%"; }
+  Mod+Shift+K      { set-window-height "+10%"; }
+  Mod+R            { switch-preset-column-width; }
+  Mod+Shift+R      { switch-preset-column-width-back; }
+  Mod+Ctrl+R       { switch-preset-window-height; }
+  Mod+Ctrl+Shift+R { switch-preset-window-height-back; }
 
   // ─── Modes ───
   Mod+T       { toggle-window-floating; }
