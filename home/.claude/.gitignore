@@ -1,0 +1,6 @@
+*
+!.gitignore
+!settings.json
+!skills
+!skills/**/*
+skills/synced

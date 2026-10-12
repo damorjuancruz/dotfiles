@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "worktree": {
+    "baseRef": "fresh"
+  },
+  "enableWorkflows": false,
+  "workflowKeywordTriggerEnabled": false,
+  "enabledPlugins": {
+    "cc-plugin-diff@builtin": false,
+    "cc-plugin-plugin-authoring@builtin": false,
+    "cc-plugin-telemetry@builtin": false
+  },
+  "feedbackDrafts": "notify",
+  "promptSuggestionEnabled": false,
+  "awaySummaryEnabled": false,
+  "askUserQuestionTimeout": "never",
+  "pluginConfigs": {
+    "cc-plugin-agents-md@builtin": {
+      "options": {
+        "instructionFiles": "claude-md"
+      }
+    }
+  },
+  "tui": "fullscreen",
+  "theme": "dark-ansi",
+  "editorMode": "vim",
+  "preferredNotifChannel": "auto",
+  "switchModelsOnFlag": false,
+  "autoContinueAtUsageLimit": false,
+  "crossSessionInbound": "hold",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true
+}
