@@ -7,6 +7,14 @@
     "pr": "",
     "sessionUrl": false
   },
+  "autoMemoryEnabled": false,
+  "skillOverrides": {
+    "anthropic-skills:import-memory": "off",
+    "anthropic-skills:informe-pdf-iea": "user-invocable-only",
+    "anthropic-skills:morning": "off",
+    "anthropic-skills:slides-ejecutivas-iea": "user-invocable-only"
+  },
+  "language": "Español",
   "worktree": {
     "baseRef": "fresh"
   },
