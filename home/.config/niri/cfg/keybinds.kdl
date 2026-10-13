@@ -43,8 +43,8 @@ binds {
 
   Mod+Ctrl+U  { move-window-to-workspace-up; }
   Mod+Ctrl+D  { move-window-to-workspace-down; }
-  Mod+Ctrl+W  { move-window-to-monitor-right; }
-  Mod+Ctrl+B  { move-window-to-monitor-left; }
+  Mod+Ctrl+W  { move-window-to-monitor-down; }
+  Mod+Ctrl+B  { move-window-to-monitor-up; }
 
   Mod+Comma   { consume-or-expel-window-left; }
   Mod+Period  { consume-or-expel-window-right; }
@@ -64,8 +64,8 @@ binds {
 
   Mod+U                                          { focus-workspace-up; }
   Mod+D                                          { focus-workspace-down; }
-  Mod+W                                          { focus-monitor-right; }
-  Mod+B                                          { focus-monitor-left; }
+  Mod+W                                          { focus-monitor-down; }
+  Mod+B                                          { focus-monitor-up; }
 
   Mod+Ctrl+Shift+W                               { move-workspace-to-monitor-right; }
   Mod+Ctrl+Shift+B                               { move-workspace-to-monitor-left; }

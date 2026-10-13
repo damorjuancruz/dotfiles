@@ -14,8 +14,9 @@ startup_command = "exec nvim"
 windows = ["claude", "zsh"]
 
 [[wildcard]]
-pattern = "~/documents/notes"
+pattern = "~/cowork"
 startup_command = "exec nvim"
+windows = ["claude", "zsh"]
 
 [[window]]
 name = "claude"

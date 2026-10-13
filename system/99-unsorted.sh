@@ -149,3 +149,6 @@ IgnorePackage xl2tpd                         # an open source implementation of 
 IgnorePackage mailcap                        # Helper application and MIME type associations for file types
 IgnorePackage python-gobject                 # Python bindings for GLib/GObject/GIO/GTK
 IgnorePackage iptables                       # Linux kernel packet control tool (using nft interface)
+IgnorePackage ufw-extras                     # Extra configuration files for UFW
+IgnorePackage realtime-privileges            # Realtime privileges for users
+IgnorePackage cachyos-plymouth-theme         # CachyOS plymouth theme
