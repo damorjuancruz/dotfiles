@@ -49,3 +49,8 @@ AddPackage go                     # Core compiler tools for the Go programming l
 AddPackage golangci-lint          # Fast linters runner for Go
 AddPackage bun                    # Incredibly fast JavaScript runtime, bundler, test runner, and package manager – all in one
 AddPackage --foreign lazysql-bin  # A cross-platform TUI database management tool written in Go
+# Containers (Podman rootless con CLI de Docker)
+AddPackage podman         # Tool and library for running OCI-based containers in pods
+AddPackage podman-docker  # Emulate Docker CLI using podman
+AddPackage docker-compose # Fast, isolated development environments using Docker
+AddPackage lazydocker     # A simple terminal UI for docker and docker-compose
