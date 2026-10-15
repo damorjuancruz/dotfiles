@@ -1,0 +1,6 @@
+- In plan mode, do not make a plan until the user explicitly asks for it
+- Structure plans in stages as you would recommend committing the changes (1 stage = 1 commit). When implementing the plan, you will just pause between each stage for me to review and commit the changes. You will only continue with the next stage when I explicitly ask you to do so. You never commit anything; I handle the commits.
+- When working with skills that require docs such as CONTEXT.md, ADRs, etc., create them in the .claude/docs.local directory of the repository (or other local-only directory according to the convention of the repository).
+- When I ask for a "subtask" (e.g. "pedile a un /subtask"), launch a fork agent.
+- Follow-ups on the same stage (including its tests) go to the subtask already working on it via SendMessage. Unrelated work or the next stage goes to a new subtask.
+- Never test in Chrome without asking first.

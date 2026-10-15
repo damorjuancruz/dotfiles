@@ -1,69 +1,69 @@
 ---
 name: manage-claude-sessions
-description: Review and optionally delete Claude Code session transcripts (.jsonl files in ~/.claude/projects/<slug>/) for the current project. Use when the user asks to list, review, prune, clean up, or delete past Claude sessions / conversations / transcripts for this project — e.g. "leé mis sesiones de claude", "borrá conversaciones viejas", "limpiá las sesiones de este proyecto", "show me my past sessions and let me delete some".
+description: Review and optionally delete Claude Code session transcripts (.jsonl files in ~/.claude/projects/<slug>/) for the current project. Use when the user asks to list, review, prune, clean up, or delete past Claude sessions, conversations, or transcripts for this project. Examples are "leé mis sesiones de claude", "borrá conversaciones viejas", "limpiá las sesiones de este proyecto", "show me my past sessions and let me delete some".
 disable-model-invocation: true
 ---
 
-# Manage Claude Sessions
+# Manage Claude sessions
 
-Review and optionally delete past Claude Code session transcripts for the current project, in batches.
+Review the current project's past Claude Code session transcripts in batches, and delete the ones the user picks.
 
 ## Where sessions live
 
-Claude Code stores per-project session transcripts at:
+Claude Code stores each project's session transcripts at:
 
 ```
 ~/.claude/projects/<slug>/<session-id>.jsonl
 ```
 
-The `<slug>` is the project's absolute path with `/` replaced by `-`, prefixed with `-`. For `/home/jcdamor/code/gvw` the slug is `-home-jcdamor-code-gvw`. Each session may also have a sibling directory `<session-id>/` with cached artifacts. The `memory/` subdirectory holds engram memory — never delete it as part of this skill.
+The `<slug>` is the project's absolute path with every `/` replaced by `-`. For `/home/jcdamor/code/gvw` the slug is `-home-jcdamor-code-gvw`. A session may also have a sibling directory `<session-id>/` with cached artifacts. The `memory/` subdirectory holds engram memory. Never delete it.
 
 ## Workflow
 
-1. **List sessions.** Run `scripts/list_sessions.py <project-dir>` (optionally `--n 5` to get more messages per side). The script prints, per session: id, size, mtime, total user-msg count, `ai-title`, `custom-title`, the first N real user messages, and the last N real user messages. The current session (if `CLAUDE_SESSION_ID` is set in env) is marked `[CURRENT SESSION]`.
+1. **List sessions.** Run `scripts/list_sessions.py <project-dir>`. Add `--n 5` to get more messages from each end. For each session the script prints the id, size, mtime, user message count, `ai-title`, `custom-title`, and the first and last N real user messages. If `CLAUDE_SESSION_ID` is set, the script marks the current session with `[CURRENT SESSION]`.
 
-2. **Identify the current session and skip it.** Never offer to delete the live transcript. If `CLAUDE_SESSION_ID` is unset, fall back to "the `.jsonl` with the most recent mtime is almost certainly current" — confirm before deleting.
+2. **Skip the current session.** Never offer to delete the live transcript. If `CLAUDE_SESSION_ID` is unset, the `.jsonl` with the most recent mtime is almost certainly the current one. Confirm with the user before deleting it.
 
-3. **Synthesize a 1–2 sentence summary per session.** Read the first and last user-message snippets together. The first messages reveal the **goal / starting intent**; the last messages reveal what was **actually accomplished or where it ended** (feature shipped, abandoned, pivoted, ran out of context, etc.). Write a brief Spanish or English summary (match the user's language) that captures both: e.g. _"Planificó e implementó el escudo de confiabilidad en termografías; terminó agregando la referencia al pie de cada gráfica."_ Ignore obvious noise like `[Request interrupted by user for tool use]`, `## Context Usage` token-breakdown dumps, and command stdout wrappers.
+3. **Summarize each session in one or two sentences.** Read the first and last user messages together. The first ones show the goal. The last ones show how the session ended, for example a shipped feature, an abandoned attempt, a pivot, or running out of context. Write the summary in the user's language and cover both, for example _"Planificó e implementó el escudo de confiabilidad en termografías; terminó agregando la referencia al pie de cada gráfica."_ Ignore noise such as `[Request interrupted by user for tool use]`, `## Context Usage` token dumps, and command stdout wrappers.
 
-4. **Batch the prompts.** Ask **up to 4 sessions per `AskUserQuestion` call** (the tool's hard limit — even if the user requests more, 4 is the cap). Order oldest-first by mtime. For each question include:
-   - session id (short form ok, e.g. first 8 chars)
+4. **Ask in batches.** Ask about at most 4 sessions per `AskUserQuestion` call. The tool schema caps it at 4, even if the user asks for more. Go oldest first by mtime. Each question includes:
+   - the session id (the first 8 characters are enough)
    - `ai-title` and `custom-title`
-   - mtime, size, total user-msg count
-   - **the synthesized summary** (the main signal — surface it prominently)
-   - optionally the literal first/last message if it adds info
+   - mtime, size, and user message count
+   - the summary, placed where the user sees it first, since it is what they decide on
+   - the literal first or last message, if it adds information
 
-   Each question offers two options: **Conservar** / **Eliminar** (match user language).
+   Each question has two options, "Conservar" and "Eliminar" (in the user's language).
 
-5. **Process answers, then move on.** After each batch, delete the sessions the user marked **Eliminar**, then issue the next batch of up to 4. Repeat until all non-current sessions are decided.
+5. **Process answers, then move on.** After each batch, delete the sessions the user marked "Eliminar" and send the next batch. Repeat until the user has decided on every session except the current one.
 
 6. **Delete safely.** For each session to delete, remove both:
    - `~/.claude/projects/<slug>/<session-id>.jsonl`
-   - `~/.claude/projects/<slug>/<session-id>/` directory if it exists
+   - `~/.claude/projects/<slug>/<session-id>/`, if it exists
 
-   Use `rm` / `rm -rf` via Bash, targeting the specific `<session-id>` path only. **Never** delete the project slug directory itself or the `memory/` subdirectory.
+   Use `rm` and `rm -rf` on that `<session-id>` path only. Never delete the project slug directory or `memory/`.
 
-7. **Final summary.** Report one line: how many kept, how many deleted, and the freed disk space if easy to compute.
+7. **Report.** Say in one line how many sessions the user kept and deleted, and the freed disk space if it's easy to compute.
 
-## Writing good summaries (step 3 in detail)
+## Writing the summaries
 
-- **First messages = intent.** The first non-noise user message is almost always the kickoff prompt — a feature ask, a bug report, a planning request. Use it to name the topic.
-- **Last messages = outcome.** The last non-noise user message often shows: a final tweak ("agregá X al pie"), confirmation ("tests pasan"), a context-exhaustion dump, or a hard pivot. Use it to describe how the session ended.
-- **Combine into one or two clauses.** Format: _"<what they set out to do>; <how it ended>."_ If the session looks abandoned or trivial, say so plainly — that's exactly the signal the user needs to decide whether to keep it.
-- **Skip the noise.** Filter `[Request interrupted by user for tool use]`, `## Context Usage` blocks, `<command-name>` wrappers. Look one or two messages deeper if the immediate first/last is noise.
+- **First messages show intent.** The first real user message is almost always the kickoff prompt, such as a feature request, a bug report, or a planning request. Use it to name the topic.
+- **Last messages show the outcome.** The last real user message is often a final tweak ("agregá X al pie"), a confirmation ("tests pasan"), a context usage dump, or a hard pivot. Use it to say how the session ended.
+- **Combine both in one or two clauses.** Use the form _"<what they set out to do>; <how it ended>."_ If the session looks abandoned or trivial, say so. The user needs exactly that to decide whether to keep it.
+- **Skip the noise listed in step 3.** If the first or last message is noise, look one or two messages further in.
 
-## Extracting metadata directly (if the script is unavailable)
+## Reading metadata without the script
 
-Each line of the `.jsonl` is a JSON object with a `type` field. Relevant types:
+Each line of the `.jsonl` is a JSON object with a `type` field. The relevant types are:
 
-- `ai-title` → `aiTitle` (auto-generated title; may appear multiple times — use the **last**)
-- `custom-title` → `customTitle` (user-set title)
-- `user` → `message.content` is either a string or a list of `{type: "text", text: "..."}` blocks. Skip messages whose text starts with `<` (system / tool wrappers) or contains "Caveat" near the start (local-command stdout).
+- `ai-title`, with the auto-generated title in `aiTitle`. It can appear several times. Use the last one.
+- `custom-title`, with the user-set title in `customTitle`.
+- `user`, where `message.content` is either a string or a list of `{type: "text", text: "..."}` blocks. Skip messages whose text starts with `<` (system and tool wrappers) or has "Caveat" near the start (local command stdout).
 
 ## Gotchas
 
-- The first few `user` entries are often system-injected wrappers, not real prompts. Always filter by leading `<` and the "Caveat" marker.
-- `ai-title` / `custom-title` entries can appear many times. Always take the **last** occurrence.
-- `AskUserQuestion` is capped at **4 questions per call** by the tool schema. Don't try to send 5+ — split into batches.
-- Don't `rm -rf` the project slug directory itself or `memory/`. Only individual `<session-id>` paths.
-- Don't read full `.jsonl` files into the conversation; they can be multi-MB. Let the script do the summarization.
+- The first few `user` entries are often system wrappers, not real prompts. Always filter by the leading `<` and the "Caveat" marker.
+- `ai-title` and `custom-title` entries can appear many times. Always take the last one.
+- `AskUserQuestion` accepts at most 4 questions per call. Split larger sets into batches.
+- Only `rm -rf` individual `<session-id>` paths, never the project slug directory or `memory/`.
+- Don't read whole `.jsonl` files into the conversation, since they can be several MB. Let the script extract what you need.
