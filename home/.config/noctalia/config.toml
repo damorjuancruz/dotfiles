@@ -35,9 +35,10 @@ warning_threshold = 20
 [calendar]
 enabled = true
 
-    [calendar.account.personal_google]
-    name = "Google"
-    type = "google"
+    [calendar.account.microsoft]
+    name = "Microsoft"
+    server_url = "https://outlook.office365.com/owa/calendar/6d03838fa05d48888ba04e435255b6f2@iea.com.ar/9a8b7553040241c886c9490d9d6e86ed3968611758087790666/calendar.ics"
+    type = "ics"
 
 [desktop_widgets]
 schema_version = 2
@@ -104,11 +105,11 @@ widget_order = [
     [lockscreen_widgets.widget."lockscreen-login-box@HDMI-A-1"]
     box_height = 196.0
     box_width = 810.0
-    cx = 1279.9996337890625
+    cx = 959.999755859375
     cy = 898.0001220703125
     output = "HDMI-A-1"
     placement_height = 1080.0
-    placement_width = 2560.0
+    placement_width = 1920.0
     rotation = 0.0
     type = "login_box"
 
@@ -158,11 +159,11 @@ widget_order = [
     [lockscreen_widgets.widget.lockscreen-widget-0000000000000001]
     box_height = 224.0
     box_width = 352.0
-    cx = 1280.0
+    cx = 960.0
     cy = 252.0
     output = "HDMI-A-1"
     placement_height = 1080.0
-    placement_width = 2560.0
+    placement_width = 1920.0
     rotation = 0.0
     type = "clock"
 
@@ -175,11 +176,11 @@ widget_order = [
     [lockscreen_widgets.widget.lockscreen-widget-0000000000000002]
     box_height = 32.0
     box_width = 112.0
-    cx = 1280.0
+    cx = 960.0
     cy = 348.0
     output = "HDMI-A-1"
     placement_height = 1080.0
-    placement_width = 2560.0
+    placement_width = 1920.0
     rotation = 0.0
     type = "clock"
 
@@ -374,6 +375,10 @@ format = "{:%A, %x · %H:%M}"
 
 [widget.cpu]
 visualization = "none"
+
+[widget.media]
+hide_when_no_media = true
+show_progress = true
 
 [widget.ram]
 visualization = "none"
