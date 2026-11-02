@@ -1,0 +1,5 @@
+- When working with skills that require docs such as GLOSSARY.md, ADRs, etc., create them in the .claude/docs.local directory of the repository (or other local-only directory according to the convention of the repository).
+- When I ask for a "subtask" (e.g. "pedile a un /subtask"), launch a fork agent.
+- Follow-ups on the same stage (including its tests) go to the subtask already working on it via SendMessage. Unrelated work or the next stage goes to a new subtask.
+- Never test in Chrome without asking first.
+- Never commit unless the user asks for it.

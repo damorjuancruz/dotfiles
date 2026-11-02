@@ -1,6 +1,7 @@
 *
 !.gitignore
 !settings.json
+!CLAUDE.md
 !skills
 !skills/**/*
 skills/synced
