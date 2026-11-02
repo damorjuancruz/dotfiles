@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+WT="$(git -C "${T3CODE_WORKTREE_PATH:-.}" rev-parse --show-toplevel)"
+MAIN="$(dirname "$(realpath "$(git -C "$WT" rev-parse --git-common-dir)")")"
+cd "$WT"
+[ "$WT" = "$MAIN" ] && {
+  echo "Esto es el repo principal, nada que hacer"
+  exit 0
+}
+
+log() { echo "==> $*"; }
+copy() { [ -e "$MAIN/$1" ] && {
+  mkdir -p "$(dirname "$WT/$1")"
+  cp -a --reflink=auto "$MAIN/$1" "$WT/$1"
+} || true; }
+
+command -v pnpm >/dev/null || eval "$(fnm env --shell bash)"
+
+if [ -e node_modules ]; then
+  log "node_modules ya existe, lo dejo"
+else
+  log "Copiando node_modules (reflink)"
+  copy node_modules
+fi
+
+log "pnpm install (no hace nada si node_modules está al día)"
+pnpm install --frozen-lockfile --prefer-offline ||
+  echo "!! pnpm-lock.yaml no coincide con package.json; node_modules queda como el del principal"
+
+log "Tipos de Expo (.expo/types, expo-env.d.ts)"
+for p in .expo/types expo-env.d.ts; do
+  [ -e "$p" ] || copy "$p"
+done
+
+log "Symlink de .claude/docs.local"
+mkdir -p .claude
+[ -e .claude/docs.local ] || ln -s "$MAIN/.claude/docs.local" .claude/docs.local
+
+log "Listo"

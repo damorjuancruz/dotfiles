@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+WT="$(git -C "${T3CODE_WORKTREE_PATH:-.}" rev-parse --show-toplevel)"
+cd "$WT"
+MAIN="$(dirname "$(realpath "$(git rev-parse --git-common-dir)")")"
+[ "$WT" = "$MAIN" ] && {
+  echo "Esto es el repo principal, no lo bajo"
+  exit 1
+}
+
+export DOCKER_HOST="${DOCKER_HOST:-unix://${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman/podman.sock}"
+
+PROJECT="$(sed -n 's/^COMPOSE_PROJECT_NAME=//p' .env 2>/dev/null || true)"
+[ -n "$PROJECT" ] || PROJECT="gvw-$(basename "$WT" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_\n-' '-')"
+
+docker compose -p "$PROJECT" down -v --remove-orphans

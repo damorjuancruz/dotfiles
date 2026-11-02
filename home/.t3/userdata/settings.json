@@ -40,33 +40,118 @@
     }
   ],
   "projectScriptOverrides": {
-    "e4c94bc5-6b70-4aff-a3e6-bfb9f321f8f2": [
+    "dd3c71f3-c5d0-4b35-ab9e-93254b2a6c4f": [
       {
-        "id": "setup-worktree",
-        "name": "Setup worktree",
-        "command": "bash scripts/setup-worktree.sh",
+        "id": "set-up-worktree",
+        "name": "Set Up Worktree",
+        "command": "\"$HOME/.local/bin/t3-setup-grainvision-web\"",
         "icon": "configure",
+        "runOnWorktreeCreate": true,
+        "async": false
+      },
+      {
+        "id": "clean-up-volumes",
+        "name": "Clean Up Volumes",
+        "command": "\"$HOME/.local/bin/t3-cleanup-grainvision-web\"",
+        "icon": "configure",
+        "runOnWorktreeCreate": false,
+        "runOnSettle": true
+      },
+      {
+        "id": "open-in-nvim-sesh",
+        "name": "Open in nvim (sesh)",
+        "command": "\"$HOME/.local/bin/t3-sesh\" && exit",
+        "icon": "play",
+        "runOnWorktreeCreate": false
+      }
+    ],
+    "68f20f63-8d1b-4ff2-9608-709fffb34ce2": [
+      {
+        "id": "set-up-worktree",
+        "name": "Set Up Worktree",
+        "command": "\"$HOME/.local/bin/t3-setup-pos-app-25204\"",
+        "icon": "configure",
+        "runOnWorktreeCreate": true,
+        "async": false
+      },
+      {
+        "id": "open-in-nvim-sesh",
+        "name": "Open in nvim (sesh)",
+        "command": "\"$HOME/.local/bin/t3-sesh\" && exit",
+        "icon": "play",
+        "runOnWorktreeCreate": false
+      }
+    ],
+    "5ca574cb-fc6c-47ca-a93c-6b697a883251": [
+      {
+        "id": "open-in-nvim-sesh",
+        "name": "Open in nvim (sesh)",
+        "command": "\"$HOME/.local/bin/t3-sesh\" && exit",
+        "icon": "play",
         "runOnWorktreeCreate": false
       }
     ]
   },
   "defaultRuntimeMode": "auto",
   "projectSettingsOverrides": {
-    "e4c94bc5-6b70-4aff-a3e6-bfb9f321f8f2": {
+    "dd3c71f3-c5d0-4b35-ab9e-93254b2a6c4f": {
       "defaultProjectScripts": [
         {
-          "id": "setup-worktree",
-          "name": "Setup worktree",
-          "command": "bash scripts/setup-worktree.sh",
+          "id": "set-up-worktree",
+          "name": "Set Up Worktree",
+          "command": "\"$HOME/.local/bin/t3-setup-grainvision-web\"",
           "icon": "configure",
+          "runOnWorktreeCreate": true,
+          "async": false
+        },
+        {
+          "id": "clean-up-volumes",
+          "name": "Clean Up Volumes",
+          "command": "\"$HOME/.local/bin/t3-cleanup-grainvision-web\"",
+          "icon": "configure",
+          "runOnWorktreeCreate": false,
+          "runOnSettle": true
+        },
+        {
+          "id": "open-in-nvim-sesh",
+          "name": "Open in nvim (sesh)",
+          "command": "\"$HOME/.local/bin/t3-sesh\" && exit",
+          "icon": "play",
           "runOnWorktreeCreate": false
         }
       ]
     },
-    "23a86dfd-9ce9-44f9-8cc4-d57cf6111fc2": {
-      "removeAgentCreditsOnMerge": true
+    "68f20f63-8d1b-4ff2-9608-709fffb34ce2": {
+      "defaultProjectScripts": [
+        {
+          "id": "set-up-worktree",
+          "name": "Set Up Worktree",
+          "command": "\"$HOME/.local/bin/t3-setup-pos-app-25204\"",
+          "icon": "configure",
+          "runOnWorktreeCreate": true,
+          "async": false
+        },
+        {
+          "id": "open-in-nvim-sesh",
+          "name": "Open in nvim (sesh)",
+          "command": "\"$HOME/.local/bin/t3-sesh\" && exit",
+          "icon": "play",
+          "runOnWorktreeCreate": false
+        }
+      ]
     },
-    "4e599592-e536-4ce1-8282-86dd96f18d5c": {
+    "5ca574cb-fc6c-47ca-a93c-6b697a883251": {
+      "defaultProjectScripts": [
+        {
+          "id": "open-in-nvim-sesh",
+          "name": "Open in nvim (sesh)",
+          "command": "\"$HOME/.local/bin/t3-sesh\" && exit",
+          "icon": "play",
+          "runOnWorktreeCreate": false
+        }
+      ]
+    },
+    "1d624584-defa-45d4-ac51-27ed01955454": {
       "defaultThreadEnvMode": "local"
     }
   },
