@@ -1,11 +1,15 @@
 {
-  "permissions": {
-    "defaultMode": "auto"
-  },
   "attribution": {
     "commit": "",
     "pr": "",
     "sessionUrl": false
+  },
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "skillOverrides": {
+    "anthropic-skills:import-memory": "off",
+    "anthropic-skills:morning": "off"
   },
   "worktree": {
     "baseRef": "fresh"
@@ -15,12 +19,27 @@
   "enabledPlugins": {
     "cc-plugin-diff@builtin": false,
     "cc-plugin-plugin-authoring@builtin": false,
-    "cc-plugin-telemetry@builtin": false
+    "cc-plugin-telemetry@builtin": false,
+    "posthog@posthog": true,
+    "claude-hud@claude-hud": true
+  },
+  "extraKnownMarketplaces": {
+    "posthog": {
+      "source": {
+        "source": "github",
+        "repo": "PostHog/ai-plugin"
+      }
+    },
+    "claude-hud": {
+      "source": {
+        "source": "github",
+        "repo": "jarrodwatts/claude-hud"
+      }
+    }
   },
   "feedbackDrafts": "notify",
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
-  "autoMemoryEnabled": false,
   "askUserQuestionTimeout": "never",
   "pluginConfigs": {
     "cc-plugin-agents-md@builtin": {
@@ -30,6 +49,7 @@
     }
   },
   "tui": "fullscreen",
+  "autoMemoryEnabled": false,
   "theme": "dark-ansi",
   "editorMode": "vim",
   "preferredNotifChannel": "auto",
@@ -37,5 +57,9 @@
   "autoContinueAtUsageLimit": false,
   "crossSessionInbound": "hold",
   "inputNeededNotifEnabled": true,
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "statusLine": {
+    "type": "command",
+    "command": "'/usr/bin/bun' --env-file /dev/null '/home/jcdamor/.claude/plugins/claude-hud/statusline.mjs'"
+  }
 }
