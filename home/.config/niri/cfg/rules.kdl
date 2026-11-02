@@ -16,10 +16,9 @@ layer-rule {
 }
 
 window-rule {
-  match app-id="Spotify"
-  match app-id="discord"
-  match app-id="org.telegram.desktop"
+  match title="Microsoft Teams"
+  match title="Outlook"
+  match title="Chatwoot"
 
   open-on-output "eDP-1"
-  open-on-workspace "2"
 }
