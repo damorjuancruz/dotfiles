@@ -5,3 +5,4 @@ export PAGER=less
 export TERMINAL=ghostty
 export BROWSER=google-chrome-stable
 export PATH="/home/jcdamor/.bun/bin:$PATH"
+export PATH="/home/jcdamor/.local/bin:$PATH"
