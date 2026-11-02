@@ -20,7 +20,7 @@ start = [ "clock", "group:g1", "bar", "media" ]
     accordion_direction = "end"
     border_width = 1.0
     enabled = true
-    fill = "surface_variant"
+    fill = "surface_container"
     id = "g1"
     members = [ "temp", "cpu", "ram" ]
     opacity = 1.0
@@ -114,7 +114,7 @@ widget_order = [
     type = "login_box"
 
         [lockscreen_widgets.widget."lockscreen-login-box@HDMI-A-1".settings]
-        background_color = "surface_variant"
+        background_color = "surface_container"
         background_opacity = 0.75
         background_radius = 12.0
         center_password_text = false
@@ -141,7 +141,7 @@ widget_order = [
     type = "login_box"
 
         [lockscreen_widgets.widget."lockscreen-login-box@eDP-1".settings]
-        background_color = "surface_variant"
+        background_color = "surface_container"
         background_opacity = 0.75
         background_radius = 12.0
         center_password_text = false
@@ -288,6 +288,7 @@ screen_time_enabled = true
     [shell.launcher]
     categories = false
     compact = true
+    layout = "simple"
 
     [shell.panel]
     clipboard_placement = "floating"
