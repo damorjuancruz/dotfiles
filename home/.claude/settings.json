@@ -9,7 +9,9 @@
   },
   "skillOverrides": {
     "anthropic-skills:import-memory": "off",
-    "anthropic-skills:morning": "off"
+    "anthropic-skills:informe-pdf-iea": "user-invocable-only",
+    "anthropic-skills:morning": "off",
+    "anthropic-skills:slides-ejecutivas-iea": "user-invocable-only"
   },
   "worktree": {
     "baseRef": "fresh"
@@ -61,5 +63,6 @@
   "statusLine": {
     "type": "command",
     "command": "'/usr/bin/bun' --env-file /dev/null '/home/jcdamor/.claude/plugins/claude-hud/statusline.mjs'"
-  }
+  },
+  "language": "Español"
 }

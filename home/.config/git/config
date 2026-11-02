@@ -1,6 +1,6 @@
 [user]
     name = Juan Cruz D'Amor
-    email = damorjuancruz@gmail.com
+    email = jcdamor@iea.com.ar
     signingkey = ~/.ssh/id_ed25519.pub
 
 [alias]
