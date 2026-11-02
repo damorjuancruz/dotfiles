@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+WT="$(git -C "${T3CODE_WORKTREE_PATH:-.}" rev-parse --show-toplevel)"
+cd "$WT"
+MAIN="$(dirname "$(realpath "$(git rev-parse --git-common-dir)")")"
+[ "$WT" = "$MAIN" ] && {
+  echo "Esto es el repo principal, nada que hacer"
+  exit 0
+}
+
+export DOCKER_HOST="${DOCKER_HOST:-unix://${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman/podman.sock}"
+
+log() { echo "==> $*"; }
+copy() { [ -e "$MAIN/$1" ] && {
+  mkdir -p "$(dirname "$WT/$1")"
+  cp -a --reflink=auto "$MAIN/$1" "$WT/$1"
+} || true; }
+
+log "Copiando vendor, node_modules y assets (reflink)"
+ASSETS_COPIED=0
+[ -e public/mix-manifest.json ] || ASSETS_COPIED=1
+for p in vendor node_modules public/dist public/mix-manifest.json public/service-worker.js; do
+  [ -e "$p" ] || copy "$p"
+done
+
+log "Telegraf y simulador Modbus"
+for f in "$MAIN"/docker/telegraf/instance-*/telegraf.conf "$MAIN"/docker/modbus-simulator/controller-*/slave-*.json; do
+  [ -e "$f" ] && copy "${f#"$MAIN/"}"
+done
+
+log "Symlink de .claude/docs.local"
+mkdir -p .claude
+[ -e .claude/docs.local ] || ln -s "$MAIN/.claude/docs.local" .claude/docs.local
+
+PORT_VARS=(APP_PORT:3000 PHP_MY_ADMIN_PORT:3001 HMR_PORT:8080 FORWARD_DB_PORT:3306
+  FORWARD_REDIS_PORT:6379 FORWARD_MAILPIT_PORT:1025 FORWARD_MAILPIT_DASHBOARD_PORT:8025)
+
+port_busy() { ss -Hltn | awk '{print $4}' | grep -qE "[:.]$1\$"; }
+
+reserved_offsets() {
+  git worktree list --porcelain | sed -n 's/^worktree //p' | while read -r d; do
+    if [ "$d" != "$WT" ] && [ -f "$d/.env" ]; then sed -n 's/^WORKTREE_PORT_OFFSET=//p' "$d/.env"; fi
+  done
+}
+
+set_env() {
+  if grep -q "^$1=" .env; then sed -i "s|^$1=.*|$1=$2|" .env; else echo "$1=$2" >>.env; fi
+}
+
+if [ -f .env ] && grep -q '^WORKTREE_PORT_OFFSET=' .env; then
+  N="$(sed -n 's/^WORKTREE_PORT_OFFSET=//p' .env)"
+  log ".env ya existe (offset $N), lo dejo"
+else
+  RESERVED=" $(reserved_offsets | tr '\n' ' ') "
+  N=""
+  for n in $(seq 1 50); do
+    [[ "$RESERVED" == *" $n "* ]] && continue
+    ok=1
+    for pv in "${PORT_VARS[@]}"; do port_busy $((${pv#*:} + 100 * n)) && {
+      ok=0
+      break
+    }; done
+    [ $ok = 1 ] && {
+      N=$n
+      break
+    }
+  done
+  [ -n "$N" ] || {
+    echo "No encontré un bloque de puertos libre" >&2
+    exit 1
+  }
+
+  log "Generando .env (offset $N)"
+  cp "$MAIN/.env" .env
+  for pv in "${PORT_VARS[@]}"; do set_env "${pv%%:*}" $((${pv#*:} + 100 * N)); done
+  set_env APP_URL "http://localhost:$((3000 + 100 * N))"
+  set_env COMPOSE_PROJECT_NAME "gvw-$(basename "$WT" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9_\n-' '-')"
+  set_env COMPOSE_PROFILES ""
+  set_env WORKTREE_PORT_OFFSET "$N"
+fi
+
+DB_PASSWORD="$(sed -n 's/^DB_PASSWORD=//p' .env)"
+
+log "Levantando el stack ($(sed -n 's/^COMPOSE_PROJECT_NAME=//p' .env))"
+docker compose up -d
+
+log "Esperando a MySQL"
+for i in $(seq 1 90); do
+  docker compose exec -T mysql mysqladmin ping -h localhost -uroot -p"$DB_PASSWORD" --silent >/dev/null 2>&1 && break
+  [ "$i" = 90 ] && {
+    echo "MySQL no respondió" >&2
+    exit 1
+  }
+  sleep 2
+done
+
+app() { docker compose exec -T -u sail laravel-app "$@"; }
+
+log "composer install (no hace nada si vendor está al día)"
+app composer install --no-interaction
+
+log "yarn install (no hace nada si node_modules está al día)"
+app yarn install --frozen-lockfile || echo "!! yarn.lock no coincide con package.json; queda sin actualizar"
+
+MIX_INPUTS=(resources/js resources/sass resources/images webpack.mix.js package.json yarn.lock)
+assets_stale() {
+  if [ "$ASSETS_COPIED" = 0 ]; then
+    [ -n "$(find "${MIX_INPUTS[@]}" -newer public/mix-manifest.json -print -quit)" ]
+    return
+  fi
+  [ -f "$MAIN/public/mix-manifest.json" ] || return 0
+  [ -e "$MAIN/public/hot" ] && return 0
+  for p in "${MIX_INPUTS[@]}"; do diff -rq "$MAIN/$p" "$WT/$p" >/dev/null 2>&1 || return 0; done
+  [ -n "$(find "${MIX_INPUTS[@]/#/$MAIN/}" -newer "$MAIN/public/mix-manifest.json" -print -quit)" ] && return 0
+  return 1
+}
+if assets_stale; then
+  log "Assets atrasados: yarn dev"
+  app yarn dev
+else
+  log "Assets al día"
+fi
+
+log "Migrando y sembrando"
+for i in $(seq 1 60); do
+  app php artisan migrate --no-interaction && break
+  [ "$i" = 60 ] && {
+    echo "migrate no pudo conectarse a MySQL" >&2
+    exit 1
+  }
+  sleep 3
+done
+DB_DATABASE="$(sed -n 's/^DB_DATABASE=//p' .env)"
+USERS="$(docker compose exec -T mysql mysql -N -uroot -p"$DB_PASSWORD" "$DB_DATABASE" -e 'select count(*) from users' 2>/dev/null | tr -d '[:space:]')"
+if [ "${USERS:-0}" = 0 ]; then
+  app php artisan db:seed --no-interaction || echo "!! db:seed falló; el stack queda arriba igual"
+else
+  log "La base ya tiene usuarios, no siembro"
+fi
+app php artisan db:massive-migration --yes
+app php artisan db:massive-migration --deferred --yes
+
+log "Listo: http://localhost:$((3000 + 100 * N))  (phpMyAdmin :$((3001 + 100 * N)), Mailpit :$((8025 + 100 * N)))"
