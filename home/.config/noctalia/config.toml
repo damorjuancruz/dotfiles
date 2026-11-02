@@ -381,6 +381,10 @@ format = "{:%a, %b %d · %H:%M}"
 [widget.cpu]
 visualization = "none"
 
+[widget.media]
+hide_when_no_media = true
+show_progress = true
+
 [widget.ram]
 visualization = "none"
 
