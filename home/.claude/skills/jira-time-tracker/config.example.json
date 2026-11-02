@@ -1,0 +1,121 @@
+{
+  "timezone": "America/Argentina/Buenos_Aires",
+  "jira": {
+    "site": "https://your-site.atlassian.net",
+    "cloud_id": "00000000-0000-0000-0000-000000000000",
+    "email": "you@company.com",
+    "account_id": "000000000000000000000000"
+  },
+  "erpnext": {
+    "url": "https://erp.company.com",
+    "user": "you@company.com"
+  },
+  "identity": {
+    "git_emails": [
+      "you@company.com",
+      "you@personal.com"
+    ],
+    "github_user": "your-github-user",
+    "github_orgs": [
+      "your-org"
+    ]
+  },
+  "projects": {
+    "SUP": {
+      "excluded_status_categories": [
+        "Done"
+      ],
+      "excluded_statuses": [],
+      "agent_notes": "Al cerrar, el campo resolution es obligatorio; la resolución en texto se escribe como comentario."
+    },
+    "ENG": {
+      "excluded_status_categories": [
+        "Done"
+      ],
+      "excluded_statuses": [
+        "programación finalizada"
+      ],
+      "agent_notes": "El campo Solución se genera a partir de los comentarios de los worklogs."
+    }
+  },
+  "misc_issues": {
+    "parent": "SUP-100",
+    "subtasks": {
+      "Reuniones": "SUP-101",
+      "Revisión de código": "SUP-102",
+      "Soporte a compañeros": "SUP-103",
+      "Gestión y comunicación": "SUP-104",
+      "Capacitación / investigación": "SUP-105",
+      "Entorno de desarrollo / infraestructura": "SUP-106",
+      "Otras": "SUP-107"
+    }
+  },
+  "sources": {
+    "jira": {
+      "enabled": true
+    },
+    "erpnext": {
+      "enabled": true
+    },
+    "git_local": {
+      "enabled": true,
+      "roots": [
+        "~/code"
+      ],
+      "max_depth": 5,
+      "session_gap_minutes": 15
+    },
+    "github": {
+      "enabled": true,
+      "only_orgs": true
+    },
+    "claude_code": {
+      "enabled": true,
+      "projects_dir": "~/.claude/projects",
+      "idle_gap_minutes": 15
+    },
+    "chrome": {
+      "enabled": true,
+      "history_path": "~/.config/google-chrome/Default/History",
+      "session_gap_minutes": 10,
+      "deny_domains": [
+        "youtube.com",
+        "facebook.com",
+        "instagram.com",
+        "x.com",
+        "twitter.com",
+        "reddit.com",
+        "netflix.com",
+        "web.whatsapp.com",
+        "mail.google.com"
+      ]
+    },
+    "outlook": {
+      "enabled": true
+    },
+    "teams": {
+      "enabled": true
+    },
+    "sharepoint": {
+      "enabled": true
+    },
+    "google_drive": {
+      "enabled": true
+    }
+  },
+  "rules": {
+    "slot_minutes": 5,
+    "min_block_minutes": 10,
+    "candidates_lookback_days": 30
+  },
+  "review": {
+    "group": true,
+    "lunch": true,
+    "lunch_minutes": 30,
+    "lunch_window": [
+      "12:30",
+      "14:00"
+    ],
+    "comment_level": "normal"
+  }
+}

@@ -1,0 +1,918 @@
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap">
+<style>
+/* Layout: una jornada leída de arriba abajo; franja del día, tabla expandible, secciones de cierre y barra de acciones fija abajo. Paleta IEA: tinta azul, celeste de acento, cards blancas. Solo tema claro. */
+:root {
+  --bg: #F5F9FC;
+  --surface: #FDFEFF;
+  --surface-2: #EEF5FB;
+  --ink: #12324F;
+  --text: #4A5A6A;
+  --muted: #74879A;
+  --line: #D8E5EF;
+  --accent: #0060AC;
+  --accent-2: #009FE3;
+  --accent-soft: #E1F3FC;
+  --on-accent: #FFFFFF;
+  --ok: #1E7A46;
+  --ok-soft: #DDF3E4;
+  --warn: #8A4F0E;
+  --warn-soft: #FFEFD9;
+  --alarm: #C8441E;
+  --alarm-soft: #FDE6DE;
+  --shadow: 0 12px 32px rgba(18, 50, 79, 0.08);
+  --c0: #0060AC; --c1: #00A3C4; --c2: #2E9E6B; --c3: #7A5AD8; --c4: #E39B2D; --c5: #D1495B; --c6: #5A7A99; --c7: #9C6B3F;
+  --hatch: rgba(116, 135, 154, 0.35);
+  --font-display: "Rubik", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
+  --radius: 14px;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.app { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 120px; display: grid; gap: 20px; }
+h1, h2, h3 { font-family: var(--font-display); color: var(--ink); margin: 0; text-wrap: balance; font-weight: 600; }
+h1 { font-size: clamp(24px, 4vw, 32px); }
+h2 { font-size: 19px; }
+h3 { font-size: 15px; font-weight: 500; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.eyebrow { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); font-weight: 500; }
+.muted { color: var(--muted); }
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; display: grid; gap: 14px; min-width: 0; }
+
+/* Encabezado */
+.head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+.head-title { display: grid; gap: 4px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fact { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--text); }
+.fact b { color: var(--ink); font-weight: 700; }
+.note { background: var(--accent-soft); color: var(--ink); border-radius: var(--radius); padding: 14px 18px; display: grid; gap: 4px; }
+.note p { margin: 0; white-space: pre-wrap; }
+
+/* Controles */
+.controls { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; justify-content: space-between; }
+.switches { display: flex; flex-wrap: wrap; gap: 12px 24px; }
+.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; color: var(--ink); font-weight: 600; }
+.switch input { appearance: none; width: 42px; height: 24px; border-radius: 999px; background: var(--surface-2); box-shadow: inset 0 0 0 1.5px var(--muted); position: relative; cursor: pointer; transition: background .15s; margin: 0; flex: none; }
+.switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .15s; }
+.switch input:checked { background: var(--accent); box-shadow: none; }
+.switch input:checked::after { transform: translateX(18px); }
+.switch small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+.bulk { display: flex; flex-wrap: wrap; gap: 8px; }
+.variant-info { font-size: 14px; color: var(--text); display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.variant-info b { color: var(--ink); }
+
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; padding: 7px 14px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.btn:hover:not(:disabled) { border-color: var(--accent-2); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.danger { color: var(--alarm); }
+.btn.on { background: var(--accent-soft); border-color: var(--accent-2); }
+.btn.small { padding: 4px 10px; font-size: 13px; border-radius: 8px; }
+
+/* Franja del día */
+.strip { display: flex; height: 26px; border-radius: 8px; overflow: hidden; background: var(--surface-2); }
+.strip span { min-width: 2px; border-right: 1px solid var(--surface); }
+.strip .gap { background: repeating-linear-gradient(135deg, var(--hatch) 0 4px, transparent 4px 8px); }
+.strip .lunch { background: var(--warn-soft); }
+.strip .break { background: var(--line); }
+.strip-axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+
+/* Tabla */
+.table { display: grid; min-width: 0; }
+.thead, .row { display: grid; grid-template-columns: 36px 104px 58px minmax(0, 1.25fr) minmax(0, 1.6fr) 120px 28px; gap: 10px; align-items: center; }
+.thead { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 0 8px 8px; border-bottom: 1px solid var(--line); font-family: var(--font-display); }
+.row { padding: 10px 8px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.row:hover { background: var(--surface-2); }
+.row.open { background: var(--surface-2); border-bottom-color: transparent; }
+.row.passive { cursor: default; color: var(--muted); }
+.row.passive:hover { background: none; }
+.row.marked .issue .key { text-decoration: line-through; }
+.chk { width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; display: grid; place-items: center; color: transparent; font-weight: 700; padding: 0; }
+.chk[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+.chk.locked { cursor: default; background: var(--surface-2); border-style: dashed; color: var(--muted); }
+.time { font-weight: 600; color: var(--ink); }
+.issue { display: grid; min-width: 0; }
+.key { font-family: var(--font-display); font-weight: 500; color: var(--ink); display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.sum, .prev { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; }
+.prev { color: var(--text); }
+.prev.none { color: var(--muted); font-style: italic; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.pill { font-size: 11.5px; border-radius: 999px; padding: 1px 8px; background: var(--surface-2); color: var(--text); font-weight: 600; white-space: nowrap; }
+.pill.alta, .pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.media, .pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.baja, .pill.alarm { background: var(--alarm-soft); color: var(--alarm); }
+.pill.info { background: var(--accent-soft); color: var(--accent); }
+.caret { border: 0; background: none; cursor: pointer; color: var(--muted); font-size: 14px; transition: transform .15s; padding: 0; }
+.row.open .caret { transform: rotate(180deg); }
+
+.detail { background: var(--surface-2); border-bottom: 1px solid var(--line); padding: 4px 16px 18px 54px; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.detail > section { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.detail h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); flex-wrap: wrap; }
+.seg button { border: 0; background: none; padding: 6px 12px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--text); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+.quote { margin: 0; padding: 2px 0 2px 12px; color: var(--ink); white-space: pre-wrap; border-left: 3px solid var(--accent-2); }
+.quote.none { color: var(--muted); font-style: italic; }
+.ev { display: grid; gap: 8px; max-height: 360px; overflow: auto; padding-right: 4px; }
+.ev-item { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 2px 10px; font-size: 13.5px; align-items: baseline; }
+.ev-when { color: var(--muted); white-space: nowrap; }
+.ev-title { color: var(--ink); overflow-wrap: anywhere; }
+.ev-title .src { font-family: var(--font-display); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); margin-right: 6px; }
+.ev-detail { grid-column: 2; color: var(--text); overflow-wrap: anywhere; }
+.ev-hints { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px; }
+.ev-hints span { font-size: 11.5px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; overflow-wrap: anywhere; }
+.parts { display: grid; gap: 4px; font-size: 13.5px; }
+textarea, input[type="text"], select { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 10px; color: var(--ink); }
+textarea { min-height: 64px; resize: vertical; }
+label.field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.radios { display: grid; gap: 6px; }
+.radios label { display: inline-flex; gap: 8px; align-items: center; color: var(--ink); flex-wrap: wrap; justify-self: start; max-width: 100%; cursor: pointer; }
+.radios input[type="radio"] { margin: 0; accent-color: var(--accent); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.warnbox { background: var(--warn-soft); color: var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; }
+
+/* Totales */
+.totals { display: grid; gap: 8px; }
+.tot { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr) 64px; gap: 10px; align-items: center; font-size: 14px; }
+.tot .bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.tot .bar i { display: block; height: 100%; border-radius: 999px; }
+.tot .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.list { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+
+/* Incidencias nuevas y seguimiento */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; }
+.item { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; min-width: 0; align-content: start; }
+.item-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+
+/* Barra fija */
+.bar-fixed { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); box-shadow: 0 -8px 24px rgba(18, 50, 79, 0.10); padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); padding-inline: 16px; z-index: 5; }
+.bar-inner { max-width: 1120px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.bar-status { font-size: 13.5px; display: grid; gap: 2px; min-width: 0; flex: 1 1 320px; }
+.bar-inner > .actions { flex: none; }
+.bar-status .why { color: var(--muted); }
+.confirm-box { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--warn-soft); color: var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; }
+.sent.failed { background: var(--warn-soft); color: var(--warn); }
+.sent { background: var(--ok-soft); color: var(--ok); border-radius: var(--radius); padding: 14px 18px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; }
+body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
+
+@media (max-width: 760px) {
+  .thead { display: none; }
+  .row { grid-template-columns: 32px minmax(0, 1fr) auto 24px; grid-template-areas: "chk time dur caret" "chk issue issue issue" "chk prev prev prev" "chk meta meta meta"; row-gap: 4px; }
+  .row > .chk { grid-area: chk; align-self: start; }
+  .row > .time { grid-area: time; } .row > .dur { grid-area: dur; } .row > .caret { grid-area: caret; }
+  .row > .issue { grid-area: issue; } .row > .prev { grid-area: prev; padding-left: 8px; border-left: 2px solid var(--line); } .row > .pills { grid-area: meta; }
+  .detail { grid-template-columns: minmax(0, 1fr); padding-left: 16px; }
+  .tot { grid-template-columns: minmax(0, 1fr) 64px; }
+  .tot .bar { grid-column: 1 / -1; grid-row: 2; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <header class="head">
+    <div class="head-title">
+      <span class="eyebrow" id="eyebrow">Carga de horas</span>
+      <h1 id="day"></h1>
+    </div>
+    <div class="facts" id="facts"></div>
+  </header>
+  <main id="main" style="display:grid;gap:20px;min-width:0"></main>
+</div>
+<div class="bar-fixed">
+  <div class="bar-inner">
+    <div class="bar-status"><span id="save-status">Cargando la revisión…</span><span class="why" id="why"></span></div>
+    <div class="actions" id="bar-actions"></div>
+  </div>
+</div>
+
+<script id="jtt-data" type="application/json">__DATA__</script>
+<script>
+(() => {
+  const D = JSON.parse(document.getElementById("jtt-data").textContent);
+  const LEVELS = ["nada", "breve", "normal", "detallado"];
+  const LEVEL_LABEL = { nada: "Nada", breve: "Breve", normal: "Normal", detallado: "Detallado" };
+  const DOC = "review/state";
+  const main = document.getElementById("main");
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const dur = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}h${String(r).padStart(2, "0")}m` : h ? `${h}h` : `${r}m`; };
+  const clone = (x) => JSON.parse(JSON.stringify(x));
+  const vname = (m) => (m.group ? (m.lunch ? "group+lunch" : "group") : (m.lunch ? "lunch" : "base"));
+
+  // ---------------------------------------------------------------- estado
+  function initialState() {
+    const confirmed = Object.fromEntries((D.confirmed_rows || []).map((k) => [k, true]));
+    const nis = {};
+    for (const n of D.new_issues) {
+      nis[n.ref] = { decision: n.decision || "", existing_key: "", note: "",
+        fields: Object.fromEntries((n.fields || []).map((f) => [f.key, f.value ?? ""])) };
+    }
+    return { round: D.round, modes: { ...D.modes }, confirmed, absorb: {}, reassign: {}, new_requests: {}, levels: { ...D.levels },
+      notes: {}, gaps: {}, new_issues: nis, followup: clone(D.followup || {}), global_note: "", action: null, sent: false };
+  }
+  let state = initialState();
+  const ui = { open: new Set(), confirmLoad: false, confirmCancel: false, generating: new Set(), notice: null };
+
+  let db = null, comments = null, sample = null, saveTimer = null, storeReady = false, sendAnchor = null;
+  const setStatus = (t) => { document.getElementById("save-status").textContent = t; };
+
+  function scheduleSave() {
+    if (!db) return;
+    clearTimeout(saveTimer);
+    setStatus("Guardando…");
+    saveTimer = setTimeout(saveNow, 500);
+  }
+  async function saveNow() {
+    clearTimeout(saveTimer);
+    if (!db) return false;
+    try { await db.doc(DOC).set(clone(state)); setStatus("Cambios guardados"); return true; }
+    catch (e) { setStatus("No se pudieron guardar los cambios: " + (e && e.message ? e.message : e)); return false; }
+  }
+
+  // ---------------------------------------------------------------- datos derivados
+  const variant = () => D.variants[vname(state.modes)];
+  const FOLLOWUP = D.stage === "followup";
+  const issueOrder = (() => { const seen = []; for (const b of Object.values(D.blocks)) if (!seen.includes(b.issue)) seen.push(b.issue); return seen; })();
+  const color = (issue) => `var(--c${Math.max(0, issueOrder.indexOf(issue)) % 8})`;
+  const info = (k) => D.issues[k] || { summary: "" };
+  const title = (k) => { const i = info(k); return i.label || (i.new ? "[nueva] " + i.summary : i.summary) || ""; };
+  const levelOf = (key) => state.levels[key] || D.defaults.level;
+  const isExisting = (r) => r.kind === "block" && r.fixed && (r.action === "existing" || r.action === "adjust");
+
+  function rowComments(r) {
+    if (r.ids.length === 1) return D.blocks[r.ids[0]].comments || {};
+    return D.group_comments[r.comment_key || r.key] || {};
+  }
+  function commentText(r) {
+    if (isExisting(r)) return D.blocks[r.ids[0]].comment || "";
+    const lv = levelOf(r.key);
+    return lv === "nada" ? "" : (rowComments(r)[lv] || "");
+  }
+  function rowConfirmed(r) {
+    if (r.kind === "block") return D.blocks[r.ids[0]].action === "existing" || !!state.confirmed[r.key];
+    if (r.kind === "gap") return gapResolved(r);
+    return true;
+  }
+  function gapResolved(r) {
+    const g = D.gaps[r.id];
+    if (g && g.kind === "unworked") return true;
+    const s = state.gaps[r.id];
+    return !!(s && (s.action === "unworked" || s.action === "absorb" || (s.action === "assign" && s.issue)));
+  }
+  const marked = (r) => r.kind === "block" && r.ids.some((i) => state.absorb[i]);
+  // Cambio de incidencia: se guarda por bloque del plan, así vale igual en las cuatro combinaciones.
+  const movable = (r) => r.kind === "block" && r.ids.every((i) => D.blocks[i].action === "new");
+  const targetOf = (r) => (r.kind === "block" && r.ids.map((i) => state.reassign[i]).find(Boolean)) || "";
+  function targetLabel(t) {
+    if (t.startsWith("new:")) return `nueva incidencia ${t.slice(4)}`;
+    return t;
+  }
+  function setTarget(r, value) {
+    let t = value;
+    if (value === "new") {
+      const n = Math.max(0, ...Object.keys(state.new_requests).map(Number)) + 1;
+      state.new_requests[n] = { hint: "" };
+      t = `new:${n}`;
+    }
+    r.ids.forEach((i) => { if (t) state.reassign[i] = t; else delete state.reassign[i]; });
+    const used = new Set(Object.values(state.reassign));
+    for (const n of Object.keys(state.new_requests)) if (!used.has(`new:${n}`)) delete state.new_requests[n];
+  }
+  // Otras filas de la combinación visible que usan alguno de los mismos bloques del plan.
+  const sharing = (r) => variant().rows.filter((o) => o !== r && o.kind === "block" && o.ids.some((i) => r.ids.includes(i)));
+  const reviewable = (r) => r.kind === "block" ? D.blocks[r.ids[0]].action !== "existing" : r.kind === "gap";
+
+  function blockers() {
+    const v = variant(), hard = [], round = [];
+    const unconf = FOLLOWUP ? 0 : v.rows.filter((r) => reviewable(r) && r.kind === "block" && !rowConfirmed(r)).length;
+    if (unconf) hard.push(`${unconf} ${unconf === 1 ? "fila sin confirmar" : "filas sin confirmar"}`);
+    for (const r of FOLLOWUP ? [] : v.rows.filter((x) => x.kind === "gap")) {
+      const g = D.gaps[r.id];
+      if (g && g.kind === "unworked") continue;
+      const s = state.gaps[r.id];
+      if (!gapResolved(r)) hard.push(`hueco ${r.start}–${r.end} sin resolver`);
+      else if (s && s.action !== "unworked") round.push("huecos asignados o absorbidos");
+    }
+    if (Object.values(state.absorb).some(Boolean)) round.push("filas marcadas para absorber");
+    if (Object.values(state.reassign).some(Boolean)) round.push("filas que cambian de incidencia");
+    if (Object.values(state.notes).some((t) => t && t.trim()) || (state.global_note || "").trim()) round.push("comentarios para Claude");
+    for (const [k, f] of Object.entries(state.followup)) {
+      const t = (info(k).transitions || []).find((x) => x.id === f.transition_id);
+      if (t && (t.fields || []).some((fd) => fd.required && !((f.fields || {})[fd.key] || "").trim())) hard.push(`falta un campo obligatorio de la transición de ${k}`);
+    }
+    if (FOLLOWUP) return { hard: [...new Set(hard)], round: [] };
+    for (const n of D.new_issues) {
+      const s = state.new_issues[n.ref] || {};
+      if (!s.decision) hard.push(`${n.ref} sin decidir`);
+      else if (s.decision !== "create") round.push(`${n.ref} no se crea`);
+      if ((s.note || "").trim()) round.push("comentarios para Claude");
+    }
+    return { hard: [...new Set(hard)], round: [...new Set(round)] };
+  }
+
+  // ---------------------------------------------------------------- render
+  function render() {
+    const v = variant();
+    document.getElementById("eyebrow").textContent = FOLLOWUP ? `Carga de horas · seguimiento` : `Carga de horas · ronda ${D.round}`;
+    document.getElementById("day").textContent = D.day_label;
+    const worked = Object.values(v.totals).reduce((a, b) => a + b, 0);
+    const rev = v.rows.filter(reviewable);
+    const conf = rev.filter(rowConfirmed).length;
+    document.getElementById("facts").innerHTML = [
+      D.range.start && `Entrada <b class="num">${esc(D.range.start)}</b>`,
+      D.range.end && `Corte <b class="num">${esc(D.range.end)}</b>`,
+      D.range.work_minutes != null && `Jornada <b class="num">${dur(D.range.work_minutes)}</b>`,
+      `Imputado <b class="num">${dur(worked)}</b>`,
+      !FOLLOWUP && `Confirmadas <b class="num">${conf}/${rev.length}</b>`,
+    ].filter(Boolean).map((t) => `<span class="fact">${t}</span>`).join("");
+
+    const note = D.note ? `<div class="note"><span class="eyebrow">Mensaje de Claude</span><p>${esc(D.note)}</p></div>` : "";
+    main.innerHTML = (FOLLOWUP ? [state.sent ? sentBanner() : "", note, followup(), globalNote()]
+      : [state.sent ? sentBanner() : "", note, controls(v), dayTable(v), totals(v), newIssues(), followup(), globalNote()]).join("");
+    document.body.classList.toggle("locked", !!state.sent);
+    renderBar();
+  }
+
+  function sentBanner() {
+    const what = { load: "Pediste cargar todo en Jira.", cancel: "Pediste cancelar la carga.", review: "Enviaste esta ronda de revisión.",
+      apply: "Pediste aplicar los cambios de estado y terminar.", apply_more: "Pediste aplicar los cambios de estado y ver los siguientes.",
+      done: "Terminaste sin más cambios de estado." }[state.action] || "";
+    const failed = ui.notice && ui.notice !== "ok";
+    const msg = failed
+      ? `${what} Quedó guardado, pero el aviso no le llegó a Claude (${esc(ui.notice)}). Escribí <b>listo</b> en la terminal de Claude Code para que lo procese.`
+      : `${what} Claude la está procesando; la página se actualiza sola cuando publique la próxima versión.`;
+    return `<div class="sent ${failed ? "failed" : ""}"><span>${msg}</span>
+      <span class="actions">${failed && comments ? `<button class="btn small" data-act="renotify">Avisar de nuevo</button>` : ""}<button class="btn small" data-act="unlock">Seguir editando</button></span></div>`;
+  }
+
+  function controls(v) {
+    const nb = (name) => D.variants[name].rows.filter((r) => r.kind === "block" && !isExisting(r)).length;
+    const lu = v.lunch;
+    let lunchTxt = "";
+    if (state.modes.lunch && lu) {
+      if (lu.mode === "discount") {
+        const parts = Object.entries(lu.discounts).map(([k, m]) => `${esc(k)} ${dur(m)}`).join(", ");
+        lunchTxt = `<span>Almuerzo <b class="num">${lu.start}–${lu.end}</b> · se descuenta de ${parts}, donde cayó el tramo con menos actividad</span>`;
+      } else if (lu.mode === "gap") {
+        lunchTxt = `<span>Almuerzo <b class="num">${lu.start}–${lu.end}</b> dentro de un hueco sin actividad: no se descuenta nada</span>`;
+      } else lunchTxt = `<span class="pill warn">Sin almuerzo: ${esc(lu.reason || "")}</span>`;
+    }
+    const warns = (v.warnings || []).map((w) => `<div class="warnbox">${esc(w)}</div>`).join("");
+    return `<section class="card">
+      <div class="controls">
+        <div class="switches">
+          <label class="switch"><input type="checkbox" id="mode-group" data-act="mode" data-mode="group" ${state.modes.group ? "checked" : ""}>
+            <span>Agrupar por incidencia<small>${nb(state.modes.lunch ? "lunch" : "base")} → ${nb(state.modes.lunch ? "group+lunch" : "group")} worklogs nuevos</small></span></label>
+          <label class="switch"><input type="checkbox" id="mode-lunch" data-act="mode" data-mode="lunch" ${state.modes.lunch ? "checked" : ""}>
+            <span>Descontar almuerzo<small>${D.defaults.lunch_minutes} min entre ${D.defaults.lunch_window[0]} y ${D.defaults.lunch_window[1]}</small></span></label>
+        </div>
+        <div class="bulk">
+          <button class="btn small" data-act="confirm-high">Confirmar las de confianza alta</button>
+          <button class="btn small" data-act="confirm-all">Confirmar todas</button>
+        </div>
+      </div>
+      ${lunchTxt ? `<div class="variant-info">${lunchTxt}</div>` : ""}
+      ${v.override ? `<div class="variant-info"><span class="pill info">Distribución ajustada por Claude</span></div>` : ""}
+      ${warns}
+    </section>`;
+  }
+
+  function dayTable(v) {
+    const total = v.rows.reduce((a, r) => a + r.minutes, 0) || 1;
+    const strip = v.rows.map((r) => {
+      const cls = r.kind === "block" ? "" : r.kind;
+      const style = `width:${(r.minutes / total) * 100}%;${r.kind === "block" ? `background:${color(r.issue)}` : ""}`;
+      const label = r.kind === "block" ? `${r.issue} ${r.start}–${r.end}` : r.kind === "lunch" ? `Almuerzo ${r.start}–${r.end}` : r.kind === "gap" ? `Hueco ${r.start}–${r.end}` : `Salida ${r.start}–${r.end}`;
+      return `<span class="${cls}" style="${style}" title="${esc(label)}"></span>`;
+    }).join("");
+    const rows = v.rows.map(rowHtml).join("");
+    return `<section class="card">
+      <div class="item-head"><h2>Bloques del día</h2><span class="muted" style="font-size:13px">Tocá una fila para ver la evidencia, elegir el comentario o dejar una nota.</span></div>
+      <div><div class="strip">${strip}</div><div class="strip-axis num"><span>${esc(D.range.start || "")}</span><span>${esc(D.range.end || "")}</span></div></div>
+      <div style="overflow-x:auto"><div class="table" style="min-width:0">
+        <div class="thead"><span></span><span>Horario</span><span>Dur.</span><span>Incidencia</span><span>Comentario del worklog</span><span>Confianza</span><span></span></div>
+        ${rows}
+      </div></div>
+    </section>`;
+  }
+
+  function rowHtml(r) {
+    const open = ui.open.has(r.key);
+    if (r.kind === "lunch" || r.kind === "break") {
+      const t = r.kind === "lunch" ? "Almuerzo (no se carga)" : "Salida registrada en el checkin";
+      return `<div class="row passive"><span class="chk locked" aria-hidden="true">–</span><span class="time num">${r.start}–${r.end}</span><span class="dur num">${dur(r.minutes)}</span>
+        <span class="issue"><span class="key">${t}</span></span><span class="prev"></span><span class="pills"></span><span></span></div>`;
+    }
+    if (r.kind === "gap") {
+      const g = D.gaps[r.id] || {};
+      const s = state.gaps[r.id];
+      const done = gapResolved(r);
+      const label = g.kind === "unworked" ? "No trabajado" : s ? { assign: `Asignar a ${s.issue || "…"}`, absorb: "Absorber en los vecinos", unworked: "No trabajado" }[s.action] : "Hueco sin actividad";
+      return `<div class="row ${open ? "open" : ""}" data-act="toggle" data-key="${esc(r.key)}">
+        <span class="chk ${g.kind === "unworked" ? "locked" : ""}" aria-pressed="${done}" aria-label="resuelto">✓</span>
+        <span class="time num">${r.start}–${r.end}</span><span class="dur num">${dur(r.minutes)}</span>
+        <span class="issue"><span class="key">${esc(label)}</span>${g.note ? `<span class="sum">${esc(g.note)}</span>` : ""}</span>
+        <span class="prev none">—</span><span class="pills">${g.kind === "unworked" ? "" : `<span class="pill ${done ? "ok" : "warn"}">${done ? "resuelto" : "a definir"}</span>`}</span>
+        <button class="caret" aria-expanded="${open}" aria-label="detalle">▾</button></div>
+        ${open && g.kind !== "unworked" ? gapDetail(r) : ""}`;
+    }
+    const b0 = D.blocks[r.ids[0]];
+    const existing = b0.action === "existing";
+    const confirmed = rowConfirmed(r);
+    const text = commentText(r);
+    const confs = [...new Set(r.ids.map((i) => D.blocks[i].confidence).filter(Boolean))];
+    const pills = [];
+    if (existing) pills.push(`<span class="pill info">ya cargado</span>`);
+    else if (b0.action === "adjust") pills.push(`<span class="pill info">ajuste</span>`);
+    else confs.forEach((c) => pills.push(`<span class="pill ${esc(c)}">${esc(c)}</span>`));
+    if (r.ids.length > 1) pills.push(`<span class="pill">${r.ids.length} bloques</span>`);
+    if (b0.fixed && !existing && b0.action === "new") pills.push(`<span class="pill">fijo</span>`);
+    if (r.ids.some((i) => D.blocks[i].warn)) pills.push(`<span class="pill warn">ver nota</span>`);
+    if (marked(r)) pills.push(`<span class="pill alarm">absorber</span>`);
+    if (targetOf(r)) pills.push(`<span class="pill info">→ ${esc(targetLabel(targetOf(r)))}</span>`);
+    if (state.notes[r.key] && state.notes[r.key].trim()) pills.push(`<span class="pill info">nota</span>`);
+    return `<div class="row ${open ? "open" : ""} ${marked(r) ? "marked" : ""}" data-act="toggle" data-key="${esc(r.key)}">
+      <button class="chk ${existing ? "locked" : ""}" data-act="confirm" data-key="${esc(r.key)}" aria-pressed="${confirmed}" aria-label="confirmar" ${existing ? "disabled" : ""}>✓</button>
+      <span class="time num">${r.start}–${r.end}</span><span class="dur num">${dur(r.minutes)}</span>
+      <span class="issue"><span class="key"><i class="dot" style="background:${color(r.issue)}"></i>${esc(r.issue)}</span><span class="sum">${esc(title(r.issue))}</span></span>
+      <span class="prev ${text ? "" : "none"}">${text ? esc(text) : "sin comentario"}</span>
+      <span class="pills">${pills.join("")}</span>
+      <button class="caret" aria-expanded="${open}" aria-label="detalle">▾</button>
+    </div>${open ? blockDetail(r) : ""}`;
+  }
+
+  function evidenceHtml(ids) {
+    const evs = [...new Set(ids.flatMap((i) => D.blocks[i].evidence || []))].map((e) => [e, D.events[e]]).filter(([, e]) => e)
+      .sort((a, b) => a[1].start.localeCompare(b[1].start));
+    if (!evs.length) return `<p class="muted" style="margin:0">Sin evidencia referenciada (${esc(ids.map((i) => (D.blocks[i].sources || []).join(", ")).filter(Boolean).join(" · ") || "sin fuentes")}).</p>`;
+    return `<div class="ev">${evs.map(([id, e]) => {
+      const hints = Object.entries(e.hints || {}).map(([k, val]) => `<span>${esc(k)}: ${esc(Array.isArray(val) ? val.join(", ") : typeof val === "object" ? JSON.stringify(val) : val)}</span>`).join("");
+      return `<div class="ev-item"><span class="ev-when num">${e.start === e.end ? e.start : `${e.start}–${e.end}`}</span>
+        <span class="ev-title"><span class="src">${esc(e.source)}</span>${esc(e.title)}</span>
+        ${e.detail ? `<span class="ev-detail">${esc(e.detail)}</span>` : ""}
+        ${hints ? `<span class="ev-hints">${hints}</span>` : ""}</div>`;
+    }).join("")}</div>`;
+  }
+
+  function blockDetail(r) {
+    const b0 = D.blocks[r.ids[0]];
+    const existing = b0.action === "existing" || b0.action === "adjust";
+    const lv = levelOf(r.key);
+    const comments = rowComments(r);
+    const i = info(r.issue);
+    let commentBox;
+    if (existing) {
+      commentBox = `<h3>Comentario del worklog</h3><div class="quote ${b0.comment ? "" : "none"}">${esc(b0.comment || "sin comentario")}</div>
+        ${b0.action === "adjust" && b0.original ? `<p style="margin:0">Ajuste de horario: <b class="num">${esc(b0.original)}</b> → <b class="num">${esc(b0.start)}–${esc(b0.end)}</b></p>` : ""}`;
+    } else {
+      commentBox = `<h3>Comentario del worklog</h3>
+        <div class="seg" role="group" aria-label="nivel de comentario">${LEVELS.map((l) => `<button data-act="level" data-key="${esc(r.key)}" data-level="${l}" aria-pressed="${l === lv}">${LEVEL_LABEL[l]}</button>`).join("")}</div>
+        <div class="quote ${lv === "nada" ? "none" : ""}">${lv === "nada" ? "Se carga sin comentario." : esc(comments[lv] || "")}</div>`;
+    }
+    const src = r.src || Object.fromEntries(r.ids.map((id) => [id, D.blocks[id].minutes]));
+    const partial = r.ids.some((id) => (src[id] ?? D.blocks[id].minutes) !== D.blocks[id].minutes);
+    const parts = (r.ids.length > 1 || partial) ? `<h3>De dónde sale este tiempo</h3>
+      <p class="muted" style="margin:0;font-size:13px">Bloques del plan original${partial ? "; si un bloque quedó repartido, se indica cuánto se usa en esta fila" : ""}.</p>
+      <div class="parts">${[...r.ids].sort((a, b) => D.blocks[a].start.localeCompare(D.blocks[b].start)).map((id) => {
+      const b = D.blocks[id];
+      const used = src[id] ?? b.minutes;
+      const amount = used === b.minutes ? dur(used) : `<b>${dur(used)}</b> de ${dur(b.minutes)}`;
+      return `<span class="num">${esc(b.start)}–${esc(b.end)} · ${amount} · ${esc((b.comments || {}).breve || b.comment || "")}</span>`;
+    }).join("")}</div>` : "";
+    const warns = r.ids.map((id) => D.blocks[id].warn).filter(Boolean).map((w) => `<div class="warnbox">${esc(w)}</div>`).join("");
+    const canAbsorb = !existing;
+    return `<div class="detail">
+      <section>
+        ${commentBox}
+        ${parts}
+        ${warns}
+        <h3>Incidencia</h3>
+        <p style="margin:0">${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(r.issue)}</a>` : esc(r.issue)} · ${esc(title(r.issue))}${i.status ? ` · <span class="pill">${esc(i.status)}</span>` : ""}${i.assignee && !i.assignee_me ? ` · asignada a ${esc(i.assignee)}` : ""}</p>
+        ${movable(r) ? reassignBox(r) : ""}
+        <label class="field" for="note-${esc(r.key)}">Nota para Claude sobre esta fila
+          <textarea id="note-${esc(r.key)}" data-bind="note" data-key="${esc(r.key)}" placeholder="Ej.: esto fue SIT-412, o partilo en dos a las 11:00">${esc(state.notes[r.key] || "")}</textarea></label>
+        <div class="actions">
+          ${b0.action === "existing" ? "" : `<button class="btn small ${rowConfirmed(r) ? "on" : ""}" data-act="confirm" data-key="${esc(r.key)}">${rowConfirmed(r) ? "Confirmada" : "Confirmar"}</button>`}
+          ${canAbsorb ? `<button class="btn small ${marked(r) ? "on" : ""}" data-act="absorb" data-key="${esc(r.key)}">${marked(r) ? "Se absorbe en los vecinos" : "Absorber en los vecinos"}</button>` : ""}
+        </div>
+      </section>
+      <section>
+        <h3>Evidencia</h3>
+        ${evidenceHtml(r.ids)}
+      </section>
+    </div>`;
+  }
+
+  function reassignBox(r) {
+    const t = targetOf(r);
+    const opt = (v, label) => `<option value="${esc(v)}" ${v === t ? "selected" : ""}>${esc(label)}</option>`;
+    const drafts = D.new_issues.filter((n) => n.ref !== r.issue).map((n) => opt(n.ref, `${n.ref} · ${n.summary}`));
+    const reqs = Object.keys(state.new_requests).map((n) => opt(`new:${n}`, `Nueva incidencia ${n} (pedida en esta ronda)`));
+    const id = `ra-${r.key}`;
+    const others = t ? sharing(r) : [];
+    const req = t.startsWith("new:") ? t.slice(4) : null;
+    return `<label class="field" for="${esc(id)}">Cargar en
+        <select id="${esc(id)}" data-bind="reassign" data-key="${esc(r.key)}">
+          ${opt("", `${r.issue} (como está)`)}
+          <optgroup label="Incidencia nueva">${drafts.join("")}${reqs.join("")}<option value="new">＋ Nueva incidencia…</option></optgroup>
+          ${candidateGroups(t, r.issue)}
+        </select></label>
+      ${req ? `<label class="field" for="nr-${esc(req)}">¿De qué se trata la nueva incidencia ${esc(req)}? (opcional)
+        <textarea id="nr-${esc(req)}" data-bind="new-request" data-req="${esc(req)}" placeholder="Si lo dejás vacío, Claude lo deduce de la evidencia">${esc((state.new_requests[req] || {}).hint || "")}</textarea></label>` : ""}
+      ${t ? `<p class="muted" style="margin:0;font-size:13px">Claude arma ${req ? "el borrador con sus campos" : "el cambio"} en la próxima ronda y vas a tener que volver a confirmar esta fila.</p>` : ""}
+      ${others.length ? `<div class="warnbox">Se mueven los bloques completos del plan, así que también cambia: ${others.map((o) => `${o.start}–${o.end} (${dur(o.minutes)})`).join(", ")}.</div>` : ""}`;
+  }
+
+  // Candidatas agrupadas: primero las que ya tienen tiempo hoy, después Tareas Varias y el resto.
+  function candidateGroups(selected, exclude) {
+    const opt = (c) => `<option value="${esc(c.key)}" ${c.key === selected ? "selected" : ""}>${esc(c.key)} · ${esc(c.label || c.summary)}</option>`;
+    const list = D.candidates.filter((c) => c.key !== exclude);
+    const today = list.filter((c) => issueOrder.includes(c.key)).sort((a, b) => issueOrder.indexOf(a.key) - issueOrder.indexOf(b.key));
+    const misc = list.filter((c) => !issueOrder.includes(c.key) && c.label);
+    const rest = list.filter((c) => !issueOrder.includes(c.key) && !c.label);
+    return [["En el plan de hoy", today], ["Tareas Varias", misc], ["Otras candidatas", rest]]
+      .filter(([, l]) => l.length).map(([label, l]) => `<optgroup label="${label}">${l.map(opt).join("")}</optgroup>`).join("");
+  }
+
+  function issueOptions(selected) {
+    return `<option value="">Elegí una incidencia…</option>${candidateGroups(selected)}`;
+  }
+
+  function gapDetail(r) {
+    const s = state.gaps[r.id] || {};
+    return `<div class="detail"><section>
+      <h3>¿Qué pasó en este tramo?</h3>
+      <div class="radios">
+        <label><input type="radio" name="gap-${esc(r.id)}" data-act="gap" data-id="${esc(r.id)}" value="assign" ${s.action === "assign" ? "checked" : ""}> Trabajé en
+          <select id="gap-issue-${esc(r.id)}" data-bind="gap-issue" data-id="${esc(r.id)}" style="width:auto;max-width:min(100%, 360px)">${issueOptions(s.issue)}</select></label>
+        <label><input type="radio" name="gap-${esc(r.id)}" data-act="gap" data-id="${esc(r.id)}" value="absorb" ${s.action === "absorb" ? "checked" : ""}> Repartirlo entre los bloques vecinos</label>
+        <label><input type="radio" name="gap-${esc(r.id)}" data-act="gap" data-id="${esc(r.id)}" value="unworked" ${s.action === "unworked" ? "checked" : ""}> No trabajé</label>
+      </div></section>
+      <section><label class="field" for="note-${esc(r.key)}">Nota para Claude
+        <textarea id="note-${esc(r.key)}" data-bind="note" data-key="${esc(r.key)}">${esc(state.notes[r.key] || "")}</textarea></label></section></div>`;
+  }
+
+  function totals(v) {
+    const entries = Object.entries(v.totals).sort((a, b) => b[1] - a[1]);
+    const max = Math.max(1, ...entries.map((e) => e[1]));
+    const disc = (v.lunch && v.lunch.mode === "discount" && state.modes.lunch) ? v.lunch.discounts : {};
+    const rows = entries.map(([k, m]) => `<div class="tot"><span class="lbl"><i class="dot" style="background:${color(k)}"></i> <b>${esc(k)}</b> ${esc(title(k))}</span>
+      <span class="bar"><i style="width:${(m / max) * 100}%;background:${color(k)}"></i></span>
+      <span class="num" style="text-align:right;color:var(--ink)">${dur(m)}${disc[k] ? `<br><small class="muted">−${dur(disc[k])}</small>` : ""}</span></div>`).join("");
+    const abs = (D.absorbed || []).map((a) => `<li><span class="num">${esc(a.time)}</span> · ~${esc(a.minutes)} min${a.issue ? ` · ${esc(a.issue)}` : ""} · ${esc(a.note)}</li>`).join("");
+    const warns = (D.warnings || []).map((w) => `<li>${esc(w)}</li>`).join("");
+    return `<section class="card"><h2>Totales por incidencia</h2><div class="totals">${rows || '<p class="muted">Sin bloques.</p>'}</div>
+      ${abs ? `<h3>Actividad absorbida (no se carga)</h3><ul class="list">${abs}</ul>` : ""}
+      ${warns ? `<h3>Advertencias del plan</h3><ul class="list">${warns}</ul>` : ""}</section>`;
+  }
+
+  function newIssues() {
+    if (!D.new_issues.length) return "";
+    const items = D.new_issues.map((n) => {
+      const s = state.new_issues[n.ref] || {};
+      const fields = (n.fields || []).map((f) => {
+        const id = `ni-${n.ref}-${f.key}`;
+        const val = s.fields && f.key in s.fields ? s.fields[f.key] : (f.value ?? "");
+        let input;
+        if (f.options && f.options.length) input = `<select id="${esc(id)}" data-bind="ni-field" data-ref="${esc(n.ref)}" data-field="${esc(f.key)}"><option value="">(vacío)</option>${f.options.map((o) => `<option ${String(o) === String(val) ? "selected" : ""}>${esc(o)}</option>`).join("")}</select>`;
+        else if (f.key === "description") input = `<textarea id="${esc(id)}" data-bind="ni-field" data-ref="${esc(n.ref)}" data-field="${esc(f.key)}">${esc(val)}</textarea>`;
+        else input = `<input type="text" id="${esc(id)}" data-bind="ni-field" data-ref="${esc(n.ref)}" data-field="${esc(f.key)}" value="${esc(val)}">`;
+        return `<label class="field" for="${esc(id)}">${esc(f.name || f.key)}${f.required ? " *" : ""}${input}</label>`;
+      }).join("");
+      const similar = (n.similar || []).map((k) => `<a href="${esc((D.issues[k] && D.issues[k].url) || "#")}" target="_blank" rel="noopener">${esc(k)}</a>`).join(", ");
+      const mins = Object.values(D.blocks).filter((b) => b.issue === n.ref).reduce((a, b) => a + b.minutes, 0);
+      return `<div class="item">
+        <div class="item-head"><h3>${esc(n.ref)} · ${esc(n.summary)}</h3><span class="pill">${esc(n.project)} · ${esc(n.type)}${n.parent ? ` · padre ${esc(n.parent)}` : ""}</span></div>
+        <span class="muted" style="font-size:13px">${dur(mins)} asignados en el plan${similar ? ` · campos tomados de ${similar}` : ""}</span>
+        <span class="muted" style="font-size:13px">Después de crearla y cargar las horas, se abre una ronda para pasarla al estado que corresponda.</span>
+        ${fields}
+        <div class="radios">
+          <label><input type="radio" name="ni-${esc(n.ref)}" data-act="ni-decision" data-ref="${esc(n.ref)}" value="create" ${s.decision === "create" ? "checked" : ""}> Crearla con estos datos</label>
+          <label><input type="radio" name="ni-${esc(n.ref)}" data-act="ni-decision" data-ref="${esc(n.ref)}" value="existing" ${s.decision === "existing" ? "checked" : ""}> Usar una existente:
+            <input type="text" id="ni-key-${esc(n.ref)}" data-bind="ni-key" data-ref="${esc(n.ref)}" value="${esc(s.existing_key || "")}" placeholder="SIT-123" style="width:120px"></label>
+          <label><input type="radio" name="ni-${esc(n.ref)}" data-act="ni-decision" data-ref="${esc(n.ref)}" value="skip" ${s.decision === "skip" ? "checked" : ""}> No crearla (explicá en la nota a dónde va el tiempo)</label>
+        </div>
+        <label class="field" for="ni-note-${esc(n.ref)}">Nota para Claude<textarea id="ni-note-${esc(n.ref)}" data-bind="ni-note" data-ref="${esc(n.ref)}">${esc(s.note || "")}</textarea></label>
+      </div>`;
+    }).join("");
+    return `<section class="card"><div class="item-head"><h2>Incidencias nuevas</h2><span class="muted" style="font-size:13px">Se crean solo si las confirmás y al cargar todo.</span></div><div class="grid2">${items}</div></section>`;
+  }
+
+  function followupKeys() {
+    if (FOLLOWUP) return D.followup_keys || [];
+    return [...new Set(Object.values(D.blocks).map((b) => b.issue))].filter((k) => D.issues[k] && !D.issues[k].misc && !D.issues[k].new);
+  }
+
+  function followup() {
+    const keys = followupKeys();
+    if (!keys.length) return "";
+    const items = keys.map((k) => {
+      const i = info(k);
+      const s = state.followup[k] || {};
+      const tr = (i.transitions || []).find((t) => t.id === s.transition_id);
+      const trSel = `<select id="tr-${esc(k)}" data-bind="transition" data-issue="${esc(k)}"><option value="">Sin cambio de estado</option>${(i.transitions || []).map((t) => `<option value="${esc(t.id)}" ${t.id === s.transition_id ? "selected" : ""}>${esc(t.name)} → ${esc(t.to)}</option>`).join("")}</select>`;
+      const trFields = tr ? (tr.fields || []).map((f) => {
+        const id = `trf-${k}-${f.key}`;
+        const val = (s.fields || {})[f.key] || "";
+        return `<label class="field" for="${esc(id)}">${esc(f.name)}${f.required ? " *" : ""}${f.allowed.length
+          ? `<select id="${esc(id)}" data-bind="tr-field" data-issue="${esc(k)}" data-field="${esc(f.key)}"><option value="">(sin valor)</option>${f.allowed.map((a) => `<option ${a === val ? "selected" : ""}>${esc(a)}</option>`).join("")}</select>`
+          : `<input type="text" id="${esc(id)}" data-bind="tr-field" data-issue="${esc(k)}" data-field="${esc(f.key)}" value="${esc(val)}">`}</label>`;
+      }).join("") : "";
+      const gen = ui.generating.has(k);
+      return `<div class="item">
+        <div class="item-head"><h3>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(k)}</a>` : esc(k)} · ${esc(i.summary)}</h3>${i.status ? `<span class="pill">${esc(i.status)}</span>` : ""}</div>
+        ${i.meta_error ? `<div class="warnbox">No se pudieron traer las transiciones: ${esc(i.meta_error)}</div>` : ""}
+        <label class="field" for="tr-${esc(k)}">Transición${trSel}</label>
+        ${trFields}
+        <label class="field" for="rc-${esc(k)}">Comentario de resolución
+          <textarea id="rc-${esc(k)}" rows="5" data-bind="res-comment" data-issue="${esc(k)}" placeholder="Escribilo o generalo con Claude">${esc(s.comment || "")}</textarea></label>
+        <div class="actions" style="align-items:center">
+          ${sample ? `<button class="btn small" data-act="gen" data-issue="${esc(k)}" ${gen ? "disabled" : ""}>${gen ? "Generando…" : (s.comment ? "Regenerar con Claude" : "Generar con Claude")}</button>` : ""}
+          <label class="switch" style="font-weight:600;font-size:14px"><input type="checkbox" id="pub-${esc(k)}" data-act="publish" data-issue="${esc(k)}" ${s.publish ? "checked" : ""}> Publicarlo</label>
+        </div>
+      </div>`;
+    }).join("");
+    const sub = FOLLOWUP ? "Ya están creadas y con las horas cargadas. Si hace falta más de un paso, usá «Aplicar y seguir»: Claude te muestra las transiciones siguientes."
+      : "Las transiciones y comentarios se aplican después de cargar las horas.";
+    return `<section class="card"><div class="item-head"><h2>${FOLLOWUP ? "Estado de las incidencias creadas" : "Seguimiento"}</h2><span class="muted" style="font-size:13px">${sub}</span></div><div class="grid2">${items}</div></section>`;
+  }
+
+  function globalNote() {
+    return `<section class="card"><label class="field" for="global-note"><h2 style="margin-bottom:6px">Comentario general para Claude</h2>
+      <textarea id="global-note" data-bind="global" placeholder="Cualquier cosa que no sea de una fila puntual">${esc(state.global_note || "")}</textarea></label></section>`;
+  }
+
+  function renderBar() {
+    const bar = document.getElementById("bar-actions");
+    const why = document.getElementById("why");
+    if (!storeReady) { bar.innerHTML = ""; why.textContent = ""; return; }
+    if (!db) {
+      bar.innerHTML = "";
+      why.textContent = "No hay acceso al almacenamiento del artifact: no se puede enviar la revisión. Abrí la página en claude.ai con tu cuenta.";
+      return;
+    }
+    const { hard, round } = blockers();
+    if (FOLLOWUP) {
+      const chosen = Object.values(state.followup).some((f) => f.transition_id || (f.publish && (f.comment || "").trim()));
+      why.textContent = state.sent ? "" : hard.length ? "Para aplicar falta: " + hard.join(", ") + "." : chosen ? "" : "Elegí una transición o un comentario para aplicar, o terminá sin cambios.";
+      const ok = chosen && !hard.length;
+      bar.innerHTML = state.sent ? "" : `<button class="btn" data-act="send" data-action="done">Terminar sin cambios</button>
+        <button class="btn" data-act="send" data-action="apply_more" ${ok ? "" : "disabled"}>Aplicar y seguir</button>
+        <button class="btn primary" data-act="send" data-action="apply" ${ok ? "" : "disabled"}>Aplicar y terminar</button>`;
+      return;
+    }
+    const canLoad = !hard.length && !round.length;
+    why.textContent = state.sent ? "" : canLoad ? "Todo confirmado: podés cargar en Jira." :
+      [hard.length ? "Para cargar falta: " + hard.join(", ") + "." : "", round.length ? "Antes de cargar, Claude tiene que procesar: " + round.join(", ") + "." : ""].filter(Boolean).join(" ");
+    if (ui.confirmLoad) {
+      const v = variant();
+      const nWl = v.rows.filter((r) => r.kind === "block" && D.blocks[r.ids[0]].action !== "existing").length;
+      const hours = dur(v.rows.filter((r) => r.kind === "block" && D.blocks[r.ids[0]].action !== "existing").reduce((a, r) => a + r.minutes, 0));
+      const nNew = Object.values(state.new_issues).filter((s) => s.decision === "create").length;
+      const nTr = Object.values(state.followup).filter((f) => f.transition_id).length;
+      const nCm = Object.values(state.followup).filter((f) => f.publish && (f.comment || "").trim()).length;
+      const n = (k, one, many) => `${k} ${k === 1 ? one : many}`;
+      const extras = [nNew && `se ${nNew === 1 ? "crea" : "crean"} ${n(nNew, "incidencia", "incidencias")}`,
+        nTr && n(nTr, "transición", "transiciones"), nCm && n(nCm, "comentario", "comentarios")].filter(Boolean);
+      const tail = extras.length ? `; además ${extras.length > 1 ? extras.slice(0, -1).join(", ") + " y " + extras[extras.length - 1] : extras[0]}` : "";
+      bar.innerHTML = `<div class="confirm-box"><span>Se ${nWl === 1 ? "carga" : "cargan"} ${n(nWl, "worklog", "worklogs")} (${hours})${tail}.</span>
+        <button class="btn small primary" data-act="send" data-action="load">Sí, cargar en Jira</button><button class="btn small" data-act="back">Volver</button></div>`;
+      return;
+    }
+    if (ui.confirmCancel) {
+      bar.innerHTML = `<div class="confirm-box"><span>No se carga nada y Claude borra esta página.</span>
+        <button class="btn small danger" data-act="send" data-action="cancel">Sí, cancelar</button><button class="btn small" data-act="back">Volver</button></div>`;
+      return;
+    }
+    bar.innerHTML = state.sent ? "" : `<button class="btn danger" data-act="ask-cancel">Cancelar</button>
+      <button class="btn" data-act="send" data-action="review">Enviar a Claude</button>
+      <button class="btn primary" data-act="ask-load" ${canLoad ? "" : "disabled"}>Cargar en Jira</button>`;
+  }
+
+  // ---------------------------------------------------------------- acciones
+  function rowByKey(key) { return variant().rows.find((r) => r.key === key); }
+
+  function toggleConfirm(key) {
+    const r = rowByKey(key);
+    if (!r) return;
+    if (r.kind !== "block" || D.blocks[r.ids[0]].action === "existing") return;
+    state.confirmed[r.key] = !rowConfirmed(r);
+    if (state.confirmed[r.key]) ui.open.delete(r.key);
+  }
+
+  const SEND_ERRORS = {
+    claude_unavailable: "Claude no estaba escuchando o el clic no llegó a tiempo",
+    rate_limited: "demasiados envíos seguidos",
+    no_session: "no hay una sesión de Claude escuchando esta página",
+  };
+
+  async function send(action) {
+    state.action = action;
+    state.sent = true;
+    state.sent_at = new Date().toISOString();
+    ui.confirmLoad = ui.confirmCancel = false;
+    // El aviso a Claude tiene que salir del clic mismo (si se demora, la plataforma lo rechaza),
+    // así que se guarda en paralelo. `plan.py review` rechaza un estado que todavía no dice
+    // `sent`, por lo que Claude nunca procesa uno a medio guardar.
+    const saving = saveNow();
+    const notice = await notify(action);
+    const ok = await saving;
+    if (!ok) { state.sent = false; state.action = null; ui.notice = null; }
+    render();
+    setStatus(!ok ? "No se pudo enviar: no se guardó el estado." : notice === "ok" ? "Enviado a Claude." : "Guardado, pero Claude no recibió el aviso.");
+  }
+
+  // Avisa a Claude con un comentario. Devuelve "ok" o el motivo del fallo (queda en ui.notice).
+  async function notify(action) {
+    let why = "la página no tiene acceso a los comentarios";
+    if (comments) {
+      try {
+        const anchor = sendAnchor || await comments.anchorFor(document.getElementById("day"));
+        const label = { load: "cargar todo en Jira", cancel: "cancelar la carga", review: "revisar los cambios",
+          apply: "aplicar los cambios de estado y terminar", apply_more: "aplicar los cambios de estado y seguir", done: "terminar" }[action];
+        await comments.sendToClaude({ anchor, text: `Ronda ${D.round} enviada: ${label}. El estado está en la db del artifact (${DOC}).` });
+        why = "ok";
+      } catch (e) {
+        why = SEND_ERRORS[e && e.code] || (e && (e.code || e.message)) || "error desconocido";
+      }
+    }
+    ui.notice = why;
+    return why;
+  }
+
+  async function generate(issue) {
+    if (!sample) return;
+    const i = info(issue);
+    const s = (state.followup[issue] = state.followup[issue] || {});
+    const tr = (i.transitions || []).find((t) => t.id === s.transition_id);
+    const rows = variant().rows.filter((r) => r.kind === "block" && r.issue === issue);
+    const work = rows.map((r) => `- ${r.start}–${r.end}: ${commentText(r) || (rowComments(r).normal || "")}`).join("\n");
+    const ev = [...new Set(rows.flatMap((r) => r.ids.flatMap((id) => D.blocks[id].evidence || [])))].map((e) => D.events[e]).filter(Boolean)
+      .slice(0, 40).map((e) => `- [${e.source}] ${e.title}${e.detail ? ": " + e.detail.slice(0, 160) : ""}`).join("\n");
+    const prompt = `Redactá un comentario de resolución para la incidencia de Jira ${issue} «${i.summary}».
+Estado actual: ${i.status || "desconocido"}.${tr ? ` Va a pasar a: ${tr.to}.` : ""}
+Descripción (extracto): ${i.description || "(sin descripción)"}
+Trabajo registrado hoy:
+${work || "(sin detalle)"}
+Evidencia de la actividad:
+${ev || "(sin evidencia)"}
+
+Escribí en español rioplatense, en 2 a 5 oraciones, qué se hizo y cómo quedó resuelto. Sin saludo, sin firma y sin markdown. No inventes datos que no estén arriba. Devolvé solo el texto del comentario.`;
+    ui.generating.add(issue);
+    render();
+    try {
+      const res = await sample(prompt, { modelTier: "default", onText: ({ text }) => {
+        const ta = document.getElementById(`rc-${issue}`);
+        if (ta) ta.value = text;
+      } });
+      s.comment = (res.text || "").trim();
+      if (s.comment) s.publish = true;
+      scheduleSave();
+    } catch (e) {
+      setStatus(e && e.code === "rate_limited" ? "Claude está ocupado; probá de nuevo en un rato." : "No se pudo generar el comentario.");
+    } finally {
+      ui.generating.delete(issue);
+      render();
+    }
+  }
+
+  main.addEventListener("click", (ev) => {
+    const el = ev.target.closest("[data-act]");
+    if (!el || state.sent && !["unlock", "renotify"].includes(el.dataset.act)) return;
+    const act = el.dataset.act;
+    if (act === "toggle") {
+      if (ev.target.closest("button:not(.caret), a, input, select, textarea, label")) return;
+      const k = el.dataset.key;
+      ui.open.has(k) ? ui.open.delete(k) : ui.open.add(k);
+      render();
+      return;
+    }
+    if (act === "unlock") { state.sent = false; state.action = null; ui.notice = null; scheduleSave(); render(); return; }
+    if (act === "renotify") { notify(state.action).then(render); return; }
+    if (act === "confirm") {
+      ev.stopPropagation();
+      const key = el.dataset.key, wasOpen = ui.open.has(key);
+      toggleConfirm(key);
+      if (wasOpen && !ui.open.has(key)) {
+        // Al colapsar desaparece el detalle: se deja la fila a la vista para no perder el lugar.
+        scheduleSave();
+        render();
+        const row = [...main.querySelectorAll(".row[data-key]")].find((x) => x.dataset.key === key);
+        if (row) row.scrollIntoView({ block: "nearest" });
+        return;
+      }
+    }
+    else if (act === "absorb") {
+      const r = rowByKey(el.dataset.key);
+      const val = !marked(r);
+      r.ids.forEach((i) => { state.absorb[i] = val; });
+      if (val) state.confirmed[r.key] = false;
+    } else if (act === "level") state.levels[el.dataset.key] = el.dataset.level;
+    else if (act === "confirm-all" || act === "confirm-high") {
+      for (const r of variant().rows) {
+        if (r.kind !== "block" || D.blocks[r.ids[0]].action === "existing" || marked(r)) continue;
+        const high = r.ids.every((i) => D.blocks[i].confidence === "alta" || D.blocks[i].action === "adjust");
+        if (act === "confirm-all" || high) state.confirmed[r.key] = true;
+      }
+    } else if (act === "gen") { generate(el.dataset.issue); return; }
+    else return;
+    scheduleSave();
+    render();
+  });
+
+  main.addEventListener("change", (ev) => {
+    const el = ev.target;
+    const act = el.dataset.act;
+    if (act === "mode") { state.modes[el.dataset.mode] = el.checked; }
+    else if (act === "gap") {
+      const id = el.dataset.id;
+      const sel = document.getElementById(`gap-issue-${id}`);
+      state.gaps[id] = { action: el.value, issue: el.value === "assign" ? (sel ? sel.value : "") : "" };
+    } else if (act === "ni-decision") { (state.new_issues[el.dataset.ref] ||= { fields: {} }).decision = el.value; }
+    else if (act === "publish") { (state.followup[el.dataset.issue] ||= {}).publish = el.checked; }
+    else if (el.dataset.bind === "transition") {
+      const k = el.dataset.issue;
+      const t = (info(k).transitions || []).find((x) => x.id === el.value);
+      const f = (state.followup[k] ||= {});
+      f.transition_id = el.value || null;
+      f.transition = t ? t.name : null;
+      f.to = t ? t.to : null;
+      f.fields = {};
+    } else if (el.dataset.bind === "reassign") {
+      const r = rowByKey(el.dataset.key);
+      if (!r) return;
+      setTarget(r, el.value);
+    } else if (el.dataset.bind === "gap-issue") {
+      const id = el.dataset.id;
+      state.gaps[id] = { action: "assign", issue: el.value };
+    } else if (el.dataset.bind === "tr-field") {
+      ((state.followup[el.dataset.issue] ||= {}).fields ||= {})[el.dataset.field] = el.value;
+      scheduleSave();
+      renderBar();
+      return;
+    } else if (el.dataset.bind === "ni-field") {
+      ((state.new_issues[el.dataset.ref] ||= { fields: {} }).fields ||= {})[el.dataset.field] = el.value;
+      scheduleSave();
+      renderBar();
+      return;
+    } else return;
+    scheduleSave();
+    render();
+  });
+
+  main.addEventListener("input", (ev) => {
+    const el = ev.target, b = el.dataset.bind;
+    if (b === "note") state.notes[el.dataset.key] = el.value;
+    else if (b === "global") state.global_note = el.value;
+    else if (b === "new-request") (state.new_requests[el.dataset.req] ||= {}).hint = el.value;
+    else if (b === "ni-note") (state.new_issues[el.dataset.ref] ||= { fields: {} }).note = el.value;
+    else if (b === "ni-key") (state.new_issues[el.dataset.ref] ||= { fields: {} }).existing_key = el.value.trim().toUpperCase();
+    else if (b === "ni-field" && el.tagName !== "SELECT") ((state.new_issues[el.dataset.ref] ||= { fields: {} }).fields ||= {})[el.dataset.field] = el.value;
+    else if (b === "res-comment") (state.followup[el.dataset.issue] ||= {}).comment = el.value;
+    else if (b === "tr-field" && el.tagName !== "SELECT") ((state.followup[el.dataset.issue] ||= {}).fields ||= {})[el.dataset.field] = el.value;
+    else return;
+    scheduleSave();
+    renderBar();
+  });
+
+  document.getElementById("bar-actions").addEventListener("click", (ev) => {
+    const el = ev.target.closest("[data-act]");
+    if (!el) return;
+    const act = el.dataset.act;
+    if (act === "ask-load") ui.confirmLoad = true;
+    else if (act === "ask-cancel") ui.confirmCancel = true;
+    else if (act === "back") ui.confirmLoad = ui.confirmCancel = false;
+    else if (act === "send") { send(el.dataset.action); return; }
+    renderBar();
+  });
+
+  // ---------------------------------------------------------------- arranque
+  render();
+  const use = (name) => (window.claude && window.claude.use ? window.claude.use(name).catch(() => null) : Promise.resolve(null));
+  use("db").then(async (d) => {
+    db = d;
+    if (db) {
+      try {
+        const snap = await db.doc(DOC).get();
+        const saved = snap.exists ? snap.data() : null;
+        if (saved && saved.round === D.round) state = { ...initialState(), ...saved };
+        setStatus(saved && saved.round === D.round ? "Se recuperaron tus cambios de esta ronda" : "Listo para revisar");
+      } catch (e) { setStatus("No se pudo leer el estado guardado"); }
+    } else setStatus("Sin almacenamiento");
+    storeReady = true;
+    render();
+  });
+  use("comments").then(async (c) => {
+    comments = c;
+    // El ancla se calcula de antemano para que el envío no tenga que esperar nada antes de avisar.
+    if (c) try { sendAnchor = await c.anchorFor(document.getElementById("day")); } catch (e) { sendAnchor = null; }
+  });
+  use("sample").then((s) => { sample = s; if (s) render(); });
+})();
+</script>

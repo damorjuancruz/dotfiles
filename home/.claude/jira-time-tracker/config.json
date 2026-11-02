@@ -1,0 +1,128 @@
+{
+  "timezone": "America/Argentina/Buenos_Aires",
+  "jira": {
+    "site": "https://iea-srl.atlassian.net",
+    "cloud_id": "de20ff29-13ed-46d3-8d15-49e6075b8074",
+    "email": "jcdamor@iea.com.ar",
+    "account_id": "611cf7069ee2e400699138f3"
+  },
+  "erpnext": {
+    "url": "https://erp.iea.com.ar",
+    "user": "jcdamor@iea.com.ar"
+  },
+  "identity": {
+    "git_emails": [
+      "jcdamor@iea.com.ar",
+      "damorjuancruz@gmail.com"
+    ],
+    "github_user": "damorjuancruz",
+    "github_orgs": [
+      "ieasrl"
+    ]
+  },
+  "projects": {
+    "SIT": {
+      "excluded_status_categories": [],
+      "excluded_statuses": [
+        "Cerrado"
+      ],
+      "agent_notes": ""
+    },
+    "SAI": {
+      "excluded_status_categories": [
+        "Done"
+      ],
+      "excluded_statuses": [
+        "OT Finalizada",
+        "Proy finalizado",
+        "programación finalizada",
+        "Fin Desarrollo",
+        "TEST Finalizado"
+      ],
+      "agent_notes": ""
+    }
+  },
+  "misc_issues": {
+    "parent": "SIT-548",
+    "subtasks": {
+      "Reuniones": "SIT-549",
+      "Revisión de código": "SIT-550",
+      "Soporte a compañeros": "SIT-551",
+      "Gestión y comunicación": "SIT-552",
+      "Capacitación": "SIT-553",
+      "Investigación / Planificación": "SIT-556",
+      "Entorno de desarrollo / infraestructura": "SIT-554",
+      "Otras": "SIT-555"
+    }
+  },
+  "sources": {
+    "jira": {
+      "enabled": true
+    },
+    "erpnext": {
+      "enabled": true
+    },
+    "git_local": {
+      "enabled": true,
+      "roots": [
+        "~/code",
+        "~/dotfiles",
+        "~/cowork",
+        "~/cowork/.claude/skills"
+      ],
+      "max_depth": 5
+    },
+    "github": {
+      "enabled": true
+    },
+    "claude_code": {
+      "enabled": true,
+      "projects_dir": "~/.claude/projects",
+      "idle_gap_minutes": 15
+    },
+    "chrome": {
+      "enabled": true,
+      "history_path": "~/.config/google-chrome/Default/History",
+      "session_gap_minutes": 10,
+      "deny_domains": [
+        "youtube.com",
+        "facebook.com",
+        "instagram.com",
+        "x.com",
+        "twitter.com",
+        "reddit.com",
+        "netflix.com",
+        "web.whatsapp.com",
+        "mail.google.com",
+        "play.hbomax.com"
+      ]
+    },
+    "outlook": {
+      "enabled": true
+    },
+    "teams": {
+      "enabled": true
+    },
+    "sharepoint": {
+      "enabled": true
+    },
+    "google_drive": {
+      "enabled": true
+    }
+  },
+  "rules": {
+    "slot_minutes": 5,
+    "min_block_minutes": 10,
+    "candidates_lookback_days": 30
+  },
+  "review": {
+    "group": true,
+    "lunch": true,
+    "lunch_minutes": 30,
+    "lunch_window": [
+      "12:30",
+      "14:00"
+    ],
+    "comment_level": "normal"
+  }
+}

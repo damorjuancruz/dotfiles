@@ -5,3 +5,5 @@
 !skills
 !skills/**/*
 skills/synced
+!jira-time-tracker
+!jira-time-tracker/config.json
