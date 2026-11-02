@@ -44,14 +44,11 @@ AddPackage fastfetch                 # A feature-rich and performance oriented n
 AddPackage curl                      # command line tool and library for transferring data with URLs
 AddPackage fnm                       # Fast and simple Node.js version manager, built with Rust
 AddPackage xdg-user-dirs             # Manage user directories like ~/Desktop and ~/Music
-AddPackage --foreign opencode-bin    # The AI coding agent built for the terminal.
-AddPackage openai-codex              # OpenAIs lightweight coding agent that runs in your terminal
 AddPackage claude-code               # An agentic coding tool that lives in your terminal
 AddPackage github-cli                # The GitHub CLI
 AddPackage go                        # Core compiler tools for the Go programming language
 AddPackage golangci-lint             # Fast linters runner for Go
 AddPackage bun                       # Incredibly fast JavaScript runtime, bundler, test runner, and package manager – all in one
-AddPackage --foreign engram-bin      # Persistent memory system for AI coding agents - SQLite + FTS5 with MCP server, HTTP API, CLI, and TUI
 AddPackage --foreign lazysql-bin     # A cross-platform TUI database management tool written in Go
 AddPackage android-tools             # Android platform tools
 AddPackage --foreign posthog-cli-bin # PostHog CLI tool for feature flags, experiments, and analytics
