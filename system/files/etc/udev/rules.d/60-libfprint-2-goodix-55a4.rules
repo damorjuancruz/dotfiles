@@ -1,0 +1,2 @@
+SUBSYSTEM=="usb", ATTRS{idVendor}=="27c6", ATTRS{idProduct}=="55a4", ATTRS{dev}=="*", TEST=="power/control", ATTR{power/control}="auto", MODE="0660", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="27c6", ATTRS{idProduct}=="55a4", ENV{LIBFPRINT_DRIVER}="Goodix TLS Fingerprint Sensor"

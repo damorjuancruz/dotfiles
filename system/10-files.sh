@@ -11,6 +11,10 @@ white_list=(
   'etc/subuid'
   'etc/subgid'
   'etc/containers/nodocker'
+  'etc/pam.d/sudo'
+  'etc/pam.d/system-local-login'
+  'etc/systemd/logind.conf'
+  'etc/udev/rules.d/60-libfprint-2-goodix-55a4.rules'
 )
 IgnorePathsExcept "/" "${white_list[@]}"
 
@@ -22,5 +26,9 @@ CopyFile /etc/sddm.conf.d/autologin.conf
 CopyFile /etc/subgid
 CopyFile /etc/subuid
 CreateFile /etc/containers/nodocker > /dev/null
+CopyFile /etc/pam.d/sudo
+CopyFile /etc/pam.d/system-local-login
+CopyFile /etc/systemd/logind.conf
+CopyFile /etc/udev/rules.d/60-libfprint-2-goodix-55a4.rules
 
 SetFileProperty / mode 555
