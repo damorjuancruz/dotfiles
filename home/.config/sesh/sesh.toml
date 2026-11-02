@@ -6,7 +6,7 @@ preview_command = "eza --all --icons --color=always {}"
 [[wildcard]]
 pattern = "~/code/*"
 startup_command = "exec nvim"
-windows = ["claude", "zsh"]
+windows = ["zsh"]
 
 [[wildcard]]
 pattern = "~/dotfiles"
@@ -16,6 +16,11 @@ windows = ["claude", "zsh"]
 [[wildcard]]
 pattern = "~/documents/notes"
 startup_command = "exec nvim"
+
+[[wildcard]]
+pattern = "~/.t3/**"
+startup_command = "exec nvim"
+windows = ["zsh"]
 
 [[window]]
 name = "claude"

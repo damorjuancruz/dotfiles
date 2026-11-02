@@ -1,0 +1,116 @@
+{
+  "favorites": [],
+  "providerModelPreferences": {
+    "claudeAgent": {
+      "hiddenModels": [
+        "claude-fable-5-1",
+        "claude-fable-5",
+        "claude-opus-5",
+        "claude-opus-4-8",
+        "claude-opus-4-7",
+        "claude-opus-4-6",
+        "claude-opus-4-5",
+        "claude-sonnet-5",
+        "claude-sonnet-4-6",
+        "claude-haiku-4-5"
+      ],
+      "modelOrder": []
+    }
+  },
+  "storageCleanup": {
+    "worktreeAfterDays": 14,
+    "worktreeSettledAfterDays": 7,
+    "worktreeOnMerge": true,
+    "worktreeOnDelete": true,
+    "worktreeUnchanged": true,
+    "browserArtifactsAfterDays": 8,
+    "logsAfterDays": 8
+  },
+  "previousWorktreesDirectories": [
+    "~/code"
+  ],
+  "defaultAutoPull": true,
+  "defaultProjectScripts": [
+    {
+      "id": "open-in-nvim-sesh",
+      "name": "Open in nvim (sesh)",
+      "command": "\"$HOME/.local/bin/t3-sesh\" && exit",
+      "icon": "play",
+      "runOnWorktreeCreate": false
+    }
+  ],
+  "projectScriptOverrides": {
+    "e4c94bc5-6b70-4aff-a3e6-bfb9f321f8f2": [
+      {
+        "id": "setup-worktree",
+        "name": "Setup worktree",
+        "command": "bash scripts/setup-worktree.sh",
+        "icon": "configure",
+        "runOnWorktreeCreate": false
+      }
+    ]
+  },
+  "defaultRuntimeMode": "auto",
+  "projectSettingsOverrides": {
+    "e4c94bc5-6b70-4aff-a3e6-bfb9f321f8f2": {
+      "defaultProjectScripts": [
+        {
+          "id": "setup-worktree",
+          "name": "Setup worktree",
+          "command": "bash scripts/setup-worktree.sh",
+          "icon": "configure",
+          "runOnWorktreeCreate": false
+        }
+      ]
+    },
+    "23a86dfd-9ce9-44f9-8cc4-d57cf6111fc2": {
+      "removeAgentCreditsOnMerge": true
+    },
+    "4e599592-e536-4ce1-8282-86dd96f18d5c": {
+      "defaultThreadEnvMode": "local"
+    }
+  },
+  "projectSettingsFolded": true,
+  "deviceOnboardingCompleted": true,
+  "sidebarAutoSettleAfterDays": null,
+  "idleCompaction": "onReturn",
+  "autoResumeLimitedThreads": true,
+  "guestSharingEnabled": true,
+  "defaultThreadEnvMode": "worktree",
+  "textGenerationModelSelection": {
+    "instanceId": "claudeAgent",
+    "model": "claude-haiku-5-5",
+    "options": [
+      {
+        "id": "effort",
+        "value": "low"
+      }
+    ]
+  },
+  "branchNamingMode": "semantic",
+  "removeAgentCreditsOnMerge": true,
+  "sourceControlWriterModelSelection": {
+    "instanceId": "claudeAgent",
+    "model": "claude-haiku-5-5"
+  },
+  "reviewGuidesEnabled": true,
+  "reviewGuideModelSelection": {
+    "instanceId": "claudeAgent",
+    "model": "claude-sonnet-5-5"
+  },
+  "providerInstances": {
+    "codex": {
+      "driver": "codex",
+      "enabled": false,
+      "config": {
+        "setupMode": "existing"
+      }
+    },
+    "claudeAgent": {
+      "driver": "claudeAgent",
+      "config": {
+        "launchArgs": "--chrome"
+      }
+    }
+  }
+}

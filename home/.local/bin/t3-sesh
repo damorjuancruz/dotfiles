@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+dir="$(realpath "${1:-${T3CODE_WORKTREE_PATH:-$PWD}}")"
+
+client="$(tmux list-clients -F '#{client_activity} #{client_name} #{client_pid}' 2>/dev/null |
+  sort -rn | head -n1 | cut -d' ' -f2-)" || true
+
+if [[ -z "$client" ]]; then
+  setsid -f ghostty --working-directory="$dir" -e sesh connect "$dir" >/dev/null 2>&1
+  exit 0
+fi
+
+client_tty="${client%% *}"
+client_pid="${client##* }"
+
+TMUX= sesh connect --switch "$dir"
+session="$(tmux list-sessions -F '#{session_name} #{session_path}' |
+  awk -v d="$dir" '$2 == d { print $1; exit }')"
+[[ -n "$session" ]] && tmux switch-client -c "$client_tty" -t "$session"
+
+if command -v niri >/dev/null; then
+  windows="$(niri msg -j windows)"
+  pid="$client_pid"
+  while [[ -n "$pid" && "$pid" -gt 1 ]]; do
+    id="$(jq -r --argjson p "$pid" 'first(.[] | select(.pid == $p) | .id) // empty' <<<"$windows")"
+    if [[ -n "$id" ]]; then
+      niri msg action focus-window --id "$id"
+      break
+    fi
+    pid="$(ps -o ppid= -p "$pid" | tr -d ' ')"
+  done
+fi

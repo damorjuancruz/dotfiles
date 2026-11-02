@@ -272,7 +272,6 @@ show_changelog_after_update = false
 
 [plugins]
 enabled = [
-    "felipeartur/ai-usagebar",
     "cleboost/ssh-launcher",
     "yuuto/arch-updater",
     "noctalia/bitwarden",
