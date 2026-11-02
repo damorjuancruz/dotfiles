@@ -20,6 +20,7 @@
   "feedbackDrafts": "notify",
   "promptSuggestionEnabled": false,
   "awaySummaryEnabled": false,
+  "autoMemoryEnabled": false,
   "askUserQuestionTimeout": "never",
   "pluginConfigs": {
     "cc-plugin-agents-md@builtin": {
