@@ -215,7 +215,7 @@ def apply_lunch(items: list, events: list[tuple[datetime, datetime]], cfg: dict,
                 parts = []
                 if it.start < s:
                     parts.append(Fixed("gap", it.start, s, it.data))
-                parts.append(Fixed("lunch", s, s + L, {"from_gap": it.data.get("id")}))
+                parts.append(Fixed("lunch", s, s + L))
                 if s + L < it.end:
                     parts.append(Fixed("gap", s + L, it.end, it.data))
                 info = {"mode": "gap", "gap_id": it.data.get("id"), "start": s, "end": s + L, "discounts": {}}
@@ -244,7 +244,7 @@ def apply_lunch(items: list, events: list[tuple[datetime, datetime]], cfg: dict,
     if best is None:
         return items, {"mode": "none", "reason": "no hay una ventana libre de reuniones, worklogs, huecos o "
                                                   "salidas para ubicar el almuerzo", "discounts": {}}
-    score, p, si, cuts = best
+    _, p, si, cuts = best
     seg = items[si]
     discounts: dict[str, int] = {}
     cut_ids: dict[str, int] = {}
@@ -296,10 +296,10 @@ def apply_lunch(items: list, events: list[tuple[datetime, datetime]], cfg: dict,
     new = []
     if before:
         new.append(Segment(seg.start, at, before))
-    new.append(Fixed("lunch", at, at + L, {}))
+    new.append(Fixed("lunch", at, at + L))
     if after:
         new.append(Segment(at + L, seg.end, after))
-    info = {"mode": "discount", "window": (p, p + L), "activity": score, "start": at, "end": at + L,
+    info = {"mode": "discount", "window": (p, p + L), "start": at, "end": at + L,
             "discounts": discounts, "cut_ids": cut_ids}
     return items[:si] + new + items[si + 1:], info
 

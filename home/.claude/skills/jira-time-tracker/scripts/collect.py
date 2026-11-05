@@ -21,7 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from collectors import chrome, claude_code, erpnext, git_local, github, jira  # noqa: E402
+from collectors import chrome, claude_code, erpnext, git_local, github, jira, remote, t3_code  # noqa: E402
 from lib import common  # noqa: E402
 
 LOCAL_COLLECTORS = {
@@ -29,6 +29,8 @@ LOCAL_COLLECTORS = {
     "git_local": git_local.collect,
     "github": github.collect,
     "claude_code": claude_code.collect,
+    "t3_code": t3_code.collect,
+    "remote": remote.collect,
     "chrome": chrome.collect,
 }
 MCP_SOURCES = ("outlook", "teams", "sharepoint", "google_drive")
@@ -61,10 +63,8 @@ def build_digest(day: date, cfg: dict, results: dict[str, dict], now: datetime) 
         end = common.round_down(now.astimezone(tz), cfg["rules"]["slot_minutes"]).isoformat() if is_today else None
         rng = {"start": None, "end": end, "end_source": "now" if is_today else None, "breaks": [], "checkins": []}
     jr = results.get("jira") or {}
-    timeline = []
-    for src, res in results.items():
-        timeline += res.get("events", [])
-    timeline.sort(key=lambda e: (e["start"], e["source"]))
+    timeline = sorted((ev for res in results.values() for ev in res.get("events", [])),
+                      key=lambda e: (e["start"], e["source"]))
     return {
         "date": day.isoformat(),
         "generated_at": now.astimezone(tz).isoformat(timespec="seconds"),
@@ -203,27 +203,20 @@ def run(cfg: dict, env: dict, day: date, only: list[str] | None, reuse: bool, no
     enabled = [s for s in LOCAL_COLLECTORS if cfg["sources"].get(s, {}).get("enabled") and (not only or s in only)]
     results: dict[str, dict] = {}
 
-    def run_one(name: str) -> dict:
+    def run_one(name: str, collect) -> dict:
         path = raw / f"{name}.json"
         if reuse and name not in (refresh or []) and path.exists():
             return common.read_json(path)
         try:
-            return LOCAL_COLLECTORS[name](cfg, env, day)
+            return collect()
         except Exception as e:  # un colector roto no debe cortar el resto
             return {"source": name, "status": "error", "message": f"{type(e).__name__}: {e}"[:300], "events": []}
 
     for name in enabled:
-        results[name] = run_one(name)
-
+        results[name] = run_one(name, lambda: LOCAL_COLLECTORS[name](cfg, env, day))
+    # Jira va al final: suma como candidatas las keys que mencionan las otras fuentes.
     if cfg["sources"]["jira"]["enabled"] and (not only or "jira" in only):
-        path = raw / "jira.json"
-        if reuse and "jira" not in (refresh or []) and path.exists():
-            results["jira"] = common.read_json(path)
-        else:
-            try:
-                results["jira"] = jira.collect(cfg, env, day, mentioned_keys(results))
-            except Exception as e:
-                results["jira"] = {"source": "jira", "status": "error", "message": f"{type(e).__name__}: {e}"[:300], "events": []}
+        results["jira"] = run_one("jira", lambda: jira.collect(cfg, env, day, mentioned_keys(results)))
 
     for name, res in results.items():
         common.write_json(raw / f"{name}.json", res)

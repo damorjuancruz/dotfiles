@@ -6,6 +6,7 @@ Solo stdlib. Los scripts se ejecutan como `python scripts/<script>.py`, por lo q
 
 from __future__ import annotations
 
+import argparse
 import base64
 import copy
 import hashlib
@@ -16,7 +17,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import asdict, dataclass, field
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -62,6 +63,15 @@ DEFAULTS: dict[str, Any] = {
             "projects_dir": "~/.claude/projects",
             "idle_gap_minutes": 15,
         },
+        "t3_code": {
+            "enabled": True,
+            "db_path": "~/.t3/userdata/statev2.sqlite",
+            "idle_gap_minutes": 15,
+        },
+        # Máquinas remotas por SSH (entornos remotos de T3 Code, VPS): corre ahí git_local,
+        # claude_code y t3_code. Cada host: {"ssh": "alias", "label"?, "timeout_seconds"?,
+        # "ssh_options"?, "git_local"?: {"roots": [...]}, "claude_code"?: {...}, "t3_code"?: {...}}.
+        "remote": {"enabled": False, "hosts": []},
         "chrome": {
             "enabled": True,
             "history_path": "~/.config/google-chrome/Default/History",
@@ -82,7 +92,7 @@ DEFAULTS: dict[str, Any] = {
         "min_block_minutes": 10,
         "candidates_lookback_days": 30,
     },
-    # Modos de la revisión: valores iniciales de los toggles del artifact y nivel de comentario.
+    # Modos de la revisión: valores iniciales de los toggles de la página y nivel de comentario.
     "review": {
         "group": True,
         "lunch": True,
@@ -222,14 +232,6 @@ def parse_iso(s: str) -> datetime:
     return dt
 
 
-def to_local(dt: datetime, tz: ZoneInfo) -> datetime:
-    return dt.astimezone(tz)
-
-
-def to_utc(dt: datetime) -> datetime:
-    return dt.astimezone(timezone.utc)
-
-
 def day_bounds(day: date, tz: ZoneInfo) -> tuple[datetime, datetime]:
     """[00:00 del día, 00:00 del día siguiente) en hora local."""
     start = datetime.combine(day, time.min, tzinfo=tz)
@@ -332,6 +334,28 @@ class Event:
         return d
 
 
+def split_by_gap(stamps: list[tuple], gap: timedelta) -> list[list[tuple]]:
+    """Ordena marcas (tuplas que empiezan con su datetime) y las corta en tramos donde pasa más
+    de `gap` entre una y la siguiente."""
+    out: list[list[tuple]] = []
+    for s in sorted(stamps, key=lambda x: x[0]):
+        if out and s[0] - out[-1][-1][0] <= gap:
+            out[-1].append(s)
+        else:
+            out.append([s])
+    return out
+
+
+def prompts_detail(prompts: list[str], chars: int = 160) -> str:
+    """'primer prompt: … | último prompt: … | N prompts' de un tramo de sesión de agente."""
+    if not prompts:
+        return ""
+    parts = [f"primer prompt: {prompts[0][:chars]}"]
+    if len(prompts) > 1:
+        parts.append(f"último prompt: {prompts[-1][:chars]}")
+    return " | ".join(parts + [f"{len(prompts)} prompts"])
+
+
 def make_event_id(source: str, *parts: Any) -> str:
     h = hashlib.sha1("\x1f".join(str(p) for p in parts).encode()).hexdigest()[:8]
     return f"{source}:{h}"
@@ -394,5 +418,21 @@ def http_json(
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             raw = resp.read()
     except urllib.error.HTTPError as e:
-        raise HttpError(e.code, url, e.read().decode(errors="replace")) from e
+        with e:  # cierra la respuesta de error
+            body = e.read().decode(errors="replace")
+        raise HttpError(e.code, url, body) from e
     return json.loads(raw) if raw else None
+
+
+# --------------------------------------------------------------------------- CLI de colectores
+
+
+def collector_main(collect, doc: str | None) -> int:
+    """`python scripts/collectors/<fuente>.py [--date AAAA-MM-DD]`: imprime el resultado del colector."""
+    ap = argparse.ArgumentParser(description=doc, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--date")
+    args = ap.parse_args()
+    cfg = load_config()
+    result = collect(cfg, load_env(), parse_day(args.date, get_tz(cfg)))
+    print(json.dumps(result, ensure_ascii=False, indent=1))
+    return 0 if result["status"] != "error" else 1

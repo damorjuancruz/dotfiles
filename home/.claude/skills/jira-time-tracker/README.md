@@ -1,14 +1,21 @@
 # jira-time-tracker
 
-Skill de Claude Code para cargar las horas del día en Jira. Reconstruye la actividad
-a partir de git, GitHub, transcripts de Claude Code, Chrome, ERPNext, Outlook/Teams y
+Skill de Claude Code (también funciona en T3 Code) para cargar las horas del día en Jira. Reconstruye la actividad
+a partir de git, GitHub, transcripts de Claude Code, threads de T3 Code (también de máquinas remotas por SSH, ver `sources.remote`), Chrome, ERPNext, Outlook/Teams y
 documentos, propone bloques de tiempo y los carga **solo** después de que los confirmes.
 
 - Los scripts (Python, solo stdlib) recolectan, normalizan, validan, calculan las variantes
   (agrupar / descontar almuerzo) y arman la página de revisión.
 - El agente interpreta qué actividad corresponde a qué incidencia y redacta los comentarios.
-- La revisión se hace en una página interactiva (artifact de claude.ai) que el agente publica,
-  lee y borra al terminar. Requiere poder publicar artifacts desde la sesión.
+- Para las incidencias con horas, el script sugiere un cambio de estado según el estado actual
+  de Jira, GitHub y git: resolver si hay un PR mergeado y ese es el último día con actividad,
+  pasar a revisión si hay un PR abierto, o a en curso si no se empezó. La página lo muestra como
+  sugerencia; no se aplica sin que lo elijas.
+- La revisión se hace en una página interactiva que sirve un servidor local (`scripts/server.py`,
+  solo en `127.0.0.1` y con token). En T3 Code el agente la abre en el navegador integrado; en
+  Claude Code te da el link. La página guarda cada cambio en el servidor, el agente se entera de
+  los envíos siguiendo su log de eventos y la página se recarga sola cuando el agente arma una
+  versión nueva. Al terminar, el agente apaga el servidor.
 
 ## Instalación
 
@@ -49,6 +56,9 @@ chmod 600 <.claude>/jira-time-tracker/.env
 | `<.claude>/jira-time-tracker/config.json` | proyectos, estados excluidos, fuentes, reglas, modos de revisión |
 | `<.claude>/jira-time-tracker/.env` | credenciales |
 | `<.claude>/jira-time-tracker/state/<fecha>/` | datos crudos, digest, plan, estado de Jira y página de revisión del día |
+| `<.claude>/jira-time-tracker/state/<fecha>/status_signals.json` | PRs vinculados y último commit de cada incidencia, para sugerir el estado |
+| `<.claude>/jira-time-tracker/state/<fecha>/page_state.json` | lo que el usuario marcó en la página |
+| `<.claude>/jira-time-tracker/state/<fecha>/server.*` | puerto y token (`server.json`), log de eventos para el agente (`server.log`) y errores (`server.err`) |
 | `assets/review.html` | plantilla de la página de revisión (el script le inyecta los datos) |
 
 ### Modos de revisión

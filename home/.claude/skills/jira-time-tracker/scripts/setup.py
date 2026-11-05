@@ -13,6 +13,7 @@ tipos de incidencia) los completa el agente consultando el MCP de Atlassian.
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 import shutil
@@ -96,6 +97,12 @@ def check() -> list[tuple[str, str, str]]:
         add(OK if hist.exists() else WARN, "chrome", str(hist) if hist.exists() else f"no existe {hist}")
         cc = common.expand_path(src["claude_code"]["projects_dir"])
         add(OK if cc.is_dir() else WARN, "claude_code", str(cc))
+        t3db = common.expand_path(src["t3_code"]["db_path"])
+        if src["t3_code"]["enabled"] and t3db.exists():  # sin T3 Code instalado no se menciona
+            add(OK, "t3_code", str(t3db))
+        if src["remote"]["enabled"]:
+            hosts = [h.get("label") or h.get("ssh") for h in src["remote"].get("hosts") or []]
+            add(OK if hosts else WARN, "remote", ", ".join(hosts) or "habilitado pero sin hosts")
         roots = [r for r in src["git_local"]["roots"] if common.expand_path(r).is_dir()]
         add(OK if roots else WARN, "git roots", ", ".join(roots) or "ninguna raíz existe")
     return rows
@@ -109,12 +116,8 @@ def discover_local() -> dict:
     code, tz = _run("timedatectl", "show", "-p", "Timezone", "--value")
     info["timezone"] = tz if code == 0 and tz else os.environ.get("TZ", "America/Argentina/Buenos_Aires")
 
-    emails = []
-    for args in (("git", "config", "--global", "user.email"),):
-        code, out = _run(*args)
-        if code == 0 and out:
-            emails.append(out)
-    info["git_emails"] = emails
+    code, out = _run("git", "config", "--global", "user.email")
+    info["git_emails"] = [out] if code == 0 and out else []
 
     if shutil.which("gh"):
         code, out = _run("gh", "api", "user", "--jq", ".login")
@@ -185,8 +188,7 @@ def propose_config(local: dict, jira_info: dict | None, projects: list[str], ema
     }
     cfg["sources"]["git_local"]["roots"] = local.get("git_roots") or ["~/code"]
     for key in projects:
-        p = {"excluded_status_categories": ["Done"], "excluded_statuses": [], "agent_notes": ""}
-        cfg["projects"][key] = p
+        cfg["projects"][key] = copy.deepcopy(common.PROJECT_DEFAULTS)
     return cfg
 
 

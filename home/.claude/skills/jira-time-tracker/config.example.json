@@ -74,6 +74,17 @@
       "projects_dir": "~/.claude/projects",
       "idle_gap_minutes": 15
     },
+    "remote": {
+      "enabled": false,
+      "hosts": [
+        {"ssh": "mi-vps", "label": "vps", "git_local": {"roots": ["~/code"]}}
+      ]
+    },
+    "t3_code": {
+      "enabled": true,
+      "db_path": "~/.t3/userdata/statev2.sqlite",
+      "idle_gap_minutes": 15
+    },
     "chrome": {
       "enabled": true,
       "history_path": "~/.config/google-chrome/Default/History",

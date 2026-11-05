@@ -236,28 +236,43 @@ def transition_fields(t: dict) -> list[dict]:
     return out
 
 
-def fetch_issue_meta(client: JiraClient, keys: list[str]) -> dict[str, dict]:
-    """Estado actual y transiciones disponibles de cada incidencia.
+def fetch_issue_meta(client: JiraClient, keys: list[str], since: datetime | None = None) -> dict[str, dict]:
+    """Estado actual, transiciones disponibles y subtareas de cada incidencia.
 
     Jira solo devuelve las transiciones que el usuario puede ejecutar (permisos y condiciones
-    del workflow). Una key que falla queda con `error` y no corta el resto."""
+    del workflow). Con `since`, también la fecha del último worklog (de cualquier persona)
+    iniciado desde ese momento: sirve para saber si se siguió trabajando después del día.
+    Una key que falla queda con `error` y no corta el resto."""
     out: dict[str, dict] = {}
     for k in keys:
         try:
-            issue = client.get(f"/rest/api/3/issue/{k}", {"fields": "summary,status"})
+            issue = client.get(f"/rest/api/3/issue/{k}", {"fields": "summary,status,subtasks"})
             trans = client.get(f"/rest/api/3/issue/{k}/transitions", {"expand": "transitions.fields"})
         except (common.HttpError, OSError) as e:
             out[k] = {"error": str(e)[:200]}
             continue
         f = issue.get("fields", {})
         status = f.get("status") or {}
+        cat = (status.get("statusCategory") or {}).get("key")
         out[k] = {
             "summary": f.get("summary", ""),
             "status": status.get("name"),
-            "status_category": CATEGORY_NAMES.get((status.get("statusCategory") or {}).get("key")),
+            "category": cat,
             "transitions": [{"id": str(t["id"]), "name": t.get("name"), "to": (t.get("to") or {}).get("name"),
+                             "to_category": ((t.get("to") or {}).get("statusCategory") or {}).get("key"),
                              "fields": transition_fields(t)} for t in trans.get("transitions", [])],
+            "subtasks": [{"key": st.get("key"),
+                          "category": ((((st.get("fields") or {}).get("status") or {}).get("statusCategory")) or {}).get("key")}
+                         for st in f.get("subtasks") or []],
         }
+        if since is not None:
+            try:
+                wl = client.get(f"/rest/api/3/issue/{k}/worklog",
+                                {"startedAfter": int(since.timestamp() * 1000), "maxResults": 1000})
+                started = [w["started"] for w in wl.get("worklogs", []) if w.get("started")]
+                out[k]["last_worklog"] = max(started, key=common.parse_iso) if started else None
+            except (common.HttpError, OSError):
+                out[k]["last_worklog"] = None
     return out
 
 
