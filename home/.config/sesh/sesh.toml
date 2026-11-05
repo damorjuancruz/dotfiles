@@ -11,16 +11,11 @@ windows = ["zsh"]
 [[wildcard]]
 pattern = "~/dotfiles"
 startup_command = "exec nvim"
-windows = ["claude", "zsh"]
+windows = ["zsh"]
 
 [[wildcard]]
 pattern = "~/documents/notes"
 startup_command = "exec nvim"
-
-[[wildcard]]
-pattern = "~/cowork"
-startup_command = "exec nvim"
-windows = ["claude", "zsh"]
 
 [[wildcard]]
 pattern = "~/.t3/**"

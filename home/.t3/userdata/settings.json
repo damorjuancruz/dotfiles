@@ -172,12 +172,9 @@
       }
     ]
   },
-  "branchNamingMode": "semantic",
+  "branchNamingMode": "custom",
+  "branchNameInstructions": "semantic prefix and name in english",
   "removeAgentCreditsOnMerge": true,
-  "sourceControlWriterModelSelection": {
-    "instanceId": "claudeAgent",
-    "model": "claude-haiku-5-5"
-  },
   "reviewGuidesEnabled": true,
   "reviewGuideModelSelection": {
     "instanceId": "claudeAgent",
