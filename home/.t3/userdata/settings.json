@@ -22,7 +22,6 @@
     "worktreeSettledAfterDays": 7,
     "worktreeOnMerge": true,
     "worktreeOnDelete": true,
-    "worktreeUnchanged": true,
     "browserArtifactsAfterDays": 8,
     "logsAfterDays": 8
   },
@@ -153,6 +152,9 @@
     },
     "1d624584-defa-45d4-ac51-27ed01955454": {
       "defaultThreadEnvMode": "local"
+    },
+    "1389da3d-468e-4152-af1a-7e315399ba04": {
+      "defaultThreadEnvMode": "local"
     }
   },
   "projectSettingsFolded": true,
@@ -172,11 +174,12 @@
       }
     ]
   },
-  "branchNamingMode": "semantic",
+  "branchNamingMode": "custom",
+  "branchNameInstructions": "semantic prefix and name in english",
   "removeAgentCreditsOnMerge": true,
-  "sourceControlWriterModelSelection": {
-    "instanceId": "claudeAgent",
-    "model": "claude-haiku-5-5"
+  "sourceControlWritingStyle": {
+    "mode": "custom",
+    "customInstructions": "conventional commits, one line"
   },
   "reviewGuidesEnabled": true,
   "reviewGuideModelSelection": {
