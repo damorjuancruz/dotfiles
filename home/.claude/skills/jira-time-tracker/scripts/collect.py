@@ -4,6 +4,8 @@
   - Cada colector escribe <state>/<fecha>/raw/<fuente>.json (con sus eventos completos).
   - Las keys de Jira mencionadas por las otras fuentes se agregan como candidatas en una
     segunda pasada.
+  - Las sesiones de agente (cc, t3, también las remotas) se cruzan entre sí para el trabajo en
+    paralelo (ver mark_parallel).
   - <state>/<fecha>/digest.json es lo que usa plan.py.
   - Por stdout sale el digest en texto compacto: es lo único que lee el agente.
 
@@ -21,7 +23,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from collectors import chrome, claude_code, erpnext, git_local, github, jira  # noqa: E402
+from collectors import chrome, claude_code, erpnext, git_local, github, jira, remote, t3_code  # noqa: E402
 from lib import common  # noqa: E402
 
 LOCAL_COLLECTORS = {
@@ -29,10 +31,13 @@ LOCAL_COLLECTORS = {
     "git_local": git_local.collect,
     "github": github.collect,
     "claude_code": claude_code.collect,
+    "t3_code": t3_code.collect,
+    "remote": remote.collect,
     "chrome": chrome.collect,
 }
 MCP_SOURCES = ("outlook", "teams", "sharepoint", "google_drive")
 DETAIL_CHARS = 140
+AGENT_SOURCES = ("cc", "t3")
 
 
 # --------------------------------------------------------------------------- keys
@@ -52,6 +57,55 @@ def mentioned_keys(results: dict[str, dict]) -> list[str]:
 # --------------------------------------------------------------------------- digest
 
 
+# --------------------------------------------------------------------------- paralelo
+
+
+def mark_parallel(timeline: list[dict], interaction_minutes: int) -> None:
+    """Cruza las sesiones de agente que se pisan en el tiempo.
+
+    Interacción: los `interaction_minutes` previos a cada prompt del usuario (leer la respuesta
+    y escribir). El resto del tramo de la sesión es trabajo autónomo del agente.
+
+    Un trabajo autónomo cuenta para su incidencia salvo cuando, en ese mismo horario, el usuario
+    interactúa con otra sesión: ese tiempo queda "tapado" y es de la sesión con interacción.
+
+    Agrega a cada evento de agente (en hints, en ISO):
+      interactive          tramos de interacción propios;
+      shadowed             [{start, end, by: [ids]}] trabajo autónomo tapado por otra sesión;
+      parallel_interaction ids de otras sesiones con interacción en el mismo horario.
+    """
+    win = timedelta(minutes=interaction_minutes)
+    agents = []
+    for ev in timeline:
+        if ev.get("source") not in AGENT_SOURCES:
+            continue
+        h = ev.setdefault("hints", {})
+        span = [(common.parse_iso(ev["start"]), common.parse_iso(ev["end"]))]
+        inter = common.merge_spans([(t - win, t) for t in map(common.parse_iso, h.get("prompt_times", []))])
+        agents.append((ev, span, inter))
+    for ev, span, inter in agents:
+        auto = common.subtract_spans(span, inter)
+        shadowed, parallel = [], []
+        for other, _, o_inter in agents:
+            if other is ev:
+                continue
+            for s, e in common.intersect_spans(auto, o_inter):
+                shadowed.append({"start": s.isoformat(), "end": e.isoformat(), "by": [other["id"]]})
+            if common.intersect_spans(inter, o_inter):
+                parallel.append(other["id"])
+        merged: list[dict] = []
+        for sh in sorted(shadowed, key=lambda x: x["start"]):
+            if merged and sh["start"] <= merged[-1]["end"]:
+                merged[-1]["end"] = max(merged[-1]["end"], sh["end"])
+                merged[-1]["by"] = list(dict.fromkeys(merged[-1]["by"] + sh["by"]))
+            else:
+                merged.append(sh)
+        h = ev["hints"]
+        h["interactive"] = [[s.isoformat(), e.isoformat()] for s, e in inter]
+        h["shadowed"] = merged
+        h["parallel_interaction"] = parallel
+
+
 def build_digest(day: date, cfg: dict, results: dict[str, dict], now: datetime) -> dict:
     tz = common.get_tz(cfg)
     erp = results.get("erpnext") or {}
@@ -61,10 +115,9 @@ def build_digest(day: date, cfg: dict, results: dict[str, dict], now: datetime) 
         end = common.round_down(now.astimezone(tz), cfg["rules"]["slot_minutes"]).isoformat() if is_today else None
         rng = {"start": None, "end": end, "end_source": "now" if is_today else None, "breaks": [], "checkins": []}
     jr = results.get("jira") or {}
-    timeline = []
-    for src, res in results.items():
-        timeline += res.get("events", [])
-    timeline.sort(key=lambda e: (e["start"], e["source"]))
+    timeline = sorted((ev for res in results.values() for ev in res.get("events", [])),
+                      key=lambda e: (e["start"], e["source"]))
+    mark_parallel(timeline, cfg["rules"]["interaction_minutes"])
     return {
         "date": day.isoformat(),
         "generated_at": now.astimezone(tz).isoformat(timespec="seconds"),
@@ -94,6 +147,20 @@ def active_keys(d: dict) -> set[str]:
 
 def _hm(iso: str | None, tz) -> str:
     return common.fmt_hm(common.parse_iso(iso).astimezone(tz)) if iso else "?"
+
+
+def _spans_hm(spans: list, tz, limit: int = 6) -> str:
+    parts = [f"{_hm(s, tz)}–{_hm(e, tz)}" for s, e in spans[:limit]]
+    return ",".join(parts) + ("…" if len(spans) > limit else "")
+
+
+def _parallel_tags(h: dict, tz) -> list[str]:
+    tags = [f"interacción {_spans_hm(h['interactive'], tz)}" if h.get("interactive") else "sin prompts: autónoma"]
+    for sh in h.get("shadowed", []):
+        tags.append(f"tapada {_hm(sh['start'], tz)}–{_hm(sh['end'], tz)} por {','.join(sh['by'])}")
+    if h.get("parallel_interaction"):
+        tags.append(f"interacción simultánea con {','.join(h['parallel_interaction'])}")
+    return tags
 
 
 def render_digest(d: dict, tz) -> str:
@@ -188,6 +255,8 @@ def render_digest(d: dict, tz) -> str:
             tags.append(f"doc={h['doctype']} {h.get('docname', '')}".strip())
         if h.get("current"):
             tags.append("SESIÓN ACTUAL")
+        if ev["source"] in AGENT_SOURCES:
+            tags += _parallel_tags(h, tz)
         detail = f" | {' '.join(ev['detail'].split())[:DETAIL_CHARS]}" if ev.get("detail") else ""
         tag_s = f" [{' · '.join(tags)}]" if tags else ""
         out.append(f"  {when:<11} {ev['source']:<6} {ev['title'][:110]}{tag_s}{detail} {{{ev['id']}}}")
@@ -203,27 +272,20 @@ def run(cfg: dict, env: dict, day: date, only: list[str] | None, reuse: bool, no
     enabled = [s for s in LOCAL_COLLECTORS if cfg["sources"].get(s, {}).get("enabled") and (not only or s in only)]
     results: dict[str, dict] = {}
 
-    def run_one(name: str) -> dict:
+    def run_one(name: str, collect) -> dict:
         path = raw / f"{name}.json"
         if reuse and name not in (refresh or []) and path.exists():
             return common.read_json(path)
         try:
-            return LOCAL_COLLECTORS[name](cfg, env, day)
+            return collect()
         except Exception as e:  # un colector roto no debe cortar el resto
             return {"source": name, "status": "error", "message": f"{type(e).__name__}: {e}"[:300], "events": []}
 
     for name in enabled:
-        results[name] = run_one(name)
-
+        results[name] = run_one(name, lambda: LOCAL_COLLECTORS[name](cfg, env, day))
+    # Jira va al final: suma como candidatas las keys que mencionan las otras fuentes.
     if cfg["sources"]["jira"]["enabled"] and (not only or "jira" in only):
-        path = raw / "jira.json"
-        if reuse and "jira" not in (refresh or []) and path.exists():
-            results["jira"] = common.read_json(path)
-        else:
-            try:
-                results["jira"] = jira.collect(cfg, env, day, mentioned_keys(results))
-            except Exception as e:
-                results["jira"] = {"source": "jira", "status": "error", "message": f"{type(e).__name__}: {e}"[:300], "events": []}
+        results["jira"] = run_one("jira", lambda: jira.collect(cfg, env, day, mentioned_keys(results)))
 
     for name, res in results.items():
         common.write_json(raw / f"{name}.json", res)

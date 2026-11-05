@@ -6,6 +6,7 @@ Solo stdlib. Los scripts se ejecutan como `python scripts/<script>.py`, por lo q
 
 from __future__ import annotations
 
+import argparse
 import base64
 import copy
 import hashlib
@@ -16,7 +17,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import asdict, dataclass, field
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -62,6 +63,15 @@ DEFAULTS: dict[str, Any] = {
             "projects_dir": "~/.claude/projects",
             "idle_gap_minutes": 15,
         },
+        "t3_code": {
+            "enabled": True,
+            "db_path": "~/.t3/userdata/statev2.sqlite",
+            "idle_gap_minutes": 15,
+        },
+        # Máquinas remotas por SSH (entornos remotos de T3 Code, VPS): corre ahí git_local,
+        # claude_code y t3_code. Cada host: {"ssh": "alias", "label"?, "timeout_seconds"?,
+        # "ssh_options"?, "git_local"?: {"roots": [...]}, "claude_code"?: {...}, "t3_code"?: {...}}.
+        "remote": {"enabled": False, "hosts": []},
         "chrome": {
             "enabled": True,
             "history_path": "~/.config/google-chrome/Default/History",
@@ -81,8 +91,11 @@ DEFAULTS: dict[str, Any] = {
         "slot_minutes": 5,
         "min_block_minutes": 10,
         "candidates_lookback_days": 30,
+        # Minutos antes de cada prompt que cuentan como interacción con la sesión de agente
+        # (leer la respuesta y escribir). Ver collect.mark_parallel.
+        "interaction_minutes": 5,
     },
-    # Modos de la revisión: valores iniciales de los toggles del artifact y nivel de comentario.
+    # Modos de la revisión: valores iniciales de los toggles de la página y nivel de comentario.
     "review": {
         "group": True,
         "lunch": True,
@@ -164,6 +177,9 @@ def validate_config(cfg: dict) -> list[str]:
         errors.append("rules.slot_minutes debe ser un entero > 0")
     elif not (isinstance(min_block, int) and min_block >= slot and min_block % slot == 0):
         errors.append("rules.min_block_minutes debe ser múltiplo de slot_minutes")
+    im = rules.get("interaction_minutes")
+    if not (isinstance(im, int) and im > 0):
+        errors.append("rules.interaction_minutes debe ser un entero > 0")
     rv = cfg.get("review", {})
     if rv.get("comment_level") not in COMMENT_LEVELS:
         errors.append(f"review.comment_level debe ser uno de {', '.join(COMMENT_LEVELS)}")
@@ -220,14 +236,6 @@ def parse_iso(s: str) -> datetime:
     if dt.tzinfo is None:
         raise ValueError(f"datetime sin zona horaria: {s!r}")
     return dt
-
-
-def to_local(dt: datetime, tz: ZoneInfo) -> datetime:
-    return dt.astimezone(tz)
-
-
-def to_utc(dt: datetime) -> datetime:
-    return dt.astimezone(timezone.utc)
 
 
 def day_bounds(day: date, tz: ZoneInfo) -> tuple[datetime, datetime]:
@@ -332,6 +340,69 @@ class Event:
         return d
 
 
+def split_by_gap(stamps: list[tuple], gap: timedelta) -> list[list[tuple]]:
+    """Ordena marcas (tuplas que empiezan con su datetime) y las corta en tramos donde pasa más
+    de `gap` entre una y la siguiente."""
+    out: list[list[tuple]] = []
+    for s in sorted(stamps, key=lambda x: x[0]):
+        if out and s[0] - out[-1][-1][0] <= gap:
+            out[-1].append(s)
+        else:
+            out.append([s])
+    return out
+
+
+Span = tuple[datetime, datetime]
+
+
+def merge_spans(spans: list[Span]) -> list[Span]:
+    """Une tramos que se pisan o se tocan; devuelve la lista ordenada."""
+    out: list[Span] = []
+    for s, e in sorted(spans):
+        if out and s <= out[-1][1]:
+            out[-1] = (out[-1][0], max(out[-1][1], e))
+        else:
+            out.append((s, e))
+    return out
+
+
+def subtract_spans(spans: list[Span], minus: list[Span]) -> list[Span]:
+    """`spans` menos `minus` (ambos se unen antes); descarta tramos vacíos."""
+    out: list[Span] = []
+    minus = merge_spans(minus)
+    for s, e in merge_spans(spans):
+        cur = s
+        for ms, me in minus:
+            if me <= cur or ms >= e:
+                continue
+            if ms > cur:
+                out.append((cur, ms))
+            cur = max(cur, me)
+        if cur < e:
+            out.append((cur, e))
+    return out
+
+
+def intersect_spans(a: list[Span], b: list[Span]) -> list[Span]:
+    out: list[Span] = []
+    for s, e in merge_spans(a):
+        for bs, be in merge_spans(b):
+            lo, hi = max(s, bs), min(e, be)
+            if lo < hi:
+                out.append((lo, hi))
+    return merge_spans(out)
+
+
+def prompts_detail(prompts: list[str], chars: int = 160) -> str:
+    """'primer prompt: … | último prompt: … | N prompts' de un tramo de sesión de agente."""
+    if not prompts:
+        return ""
+    parts = [f"primer prompt: {prompts[0][:chars]}"]
+    if len(prompts) > 1:
+        parts.append(f"último prompt: {prompts[-1][:chars]}")
+    return " | ".join(parts + [f"{len(prompts)} prompts"])
+
+
 def make_event_id(source: str, *parts: Any) -> str:
     h = hashlib.sha1("\x1f".join(str(p) for p in parts).encode()).hexdigest()[:8]
     return f"{source}:{h}"
@@ -394,5 +465,21 @@ def http_json(
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             raw = resp.read()
     except urllib.error.HTTPError as e:
-        raise HttpError(e.code, url, e.read().decode(errors="replace")) from e
+        with e:  # cierra la respuesta de error
+            body = e.read().decode(errors="replace")
+        raise HttpError(e.code, url, body) from e
     return json.loads(raw) if raw else None
+
+
+# --------------------------------------------------------------------------- CLI de colectores
+
+
+def collector_main(collect, doc: str | None) -> int:
+    """`python scripts/collectors/<fuente>.py [--date AAAA-MM-DD]`: imprime el resultado del colector."""
+    ap = argparse.ArgumentParser(description=doc, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--date")
+    args = ap.parse_args()
+    cfg = load_config()
+    result = collect(cfg, load_env(), parse_day(args.date, get_tz(cfg)))
+    print(json.dumps(result, ensure_ascii=False, indent=1))
+    return 0 if result["status"] != "error" else 1

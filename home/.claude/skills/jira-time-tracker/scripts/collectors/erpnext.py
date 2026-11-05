@@ -13,7 +13,6 @@ Uso: python scripts/collectors/erpnext.py [--date AAAA-MM-DD]
 
 from __future__ import annotations
 
-import argparse
 import html as html_mod
 import json
 import re
@@ -114,7 +113,7 @@ def _version_fields(data: Any) -> list[str]:
     return names
 
 
-def merge_doc_events(items: list[tuple[datetime, str, str, list[str]]], tz) -> list[dict]:
+def merge_doc_events(items: list[tuple[datetime, str, str, list[str]]]) -> list[dict]:
     """Agrupa guardados consecutivos del mismo documento (huecos ≤ MERGE_GAP_MINUTES)."""
     groups: list[dict] = []
     open_by_doc: dict[tuple[str, str], dict] = {}
@@ -182,7 +181,7 @@ def collect(cfg: dict, env: dict, day: date, client: FrappeClient | None = None,
                     ["ref_doctype", "docname", "creation", "data"])
     items = [(parse_frappe_dt(v["creation"], tz), v["ref_doctype"], v["docname"], _version_fields(v.get("data")))
              for v in versions]
-    events = merge_doc_events(items, tz)
+    events = merge_doc_events(items)
 
     for c in safe("Comment", [["owner", "=", user], *_day_filter("creation", day)],
                   ["comment_type", "reference_doctype", "reference_name", "content", "creation"]):
@@ -191,7 +190,7 @@ def collect(cfg: dict, env: dict, day: date, client: FrappeClient | None = None,
         ts = parse_frappe_dt(c["creation"], tz).isoformat()
         events.append(common.Event(
             SOURCE, ts, ts, f"{(c.get('comment_type') or 'Comment').lower()} en {c.get('reference_doctype')} {c.get('reference_name')}",
-            common_text(c.get("content"))[:200],
+            html_text(c.get("content"))[:200],
             {"doctype": c.get("reference_doctype"), "docname": c.get("reference_name")}, "normal",
         ).to_dict())
 
@@ -208,7 +207,7 @@ def collect(cfg: dict, env: dict, day: date, client: FrappeClient | None = None,
                   ["subject", "operation", "reference_doctype", "reference_name", "creation"]):
         ts = parse_frappe_dt(a["creation"], tz).isoformat()
         events.append(common.Event(
-            SOURCE, ts, ts, common_text(a.get("subject") or a.get("operation") or "actividad")[:120], "",
+            SOURCE, ts, ts, html_text(a.get("subject") or a.get("operation") or "actividad")[:120], "",
             {"doctype": a.get("reference_doctype"), "docname": a.get("reference_name")}, "weak",
         ).to_dict())
 
@@ -218,22 +217,11 @@ def collect(cfg: dict, env: dict, day: date, client: FrappeClient | None = None,
     return result
 
 
-def common_text(html: str | None) -> str:
+def html_text(html: str | None) -> str:
     """Texto plano de un fragmento HTML de Frappe."""
     text = re.sub(r"<[^>]+>", " ", html or "")
     return " ".join(html_mod.unescape(text).split())
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--date")
-    args = ap.parse_args()
-    cfg = common.load_config()
-    day = common.parse_day(args.date, common.get_tz(cfg))
-    result = collect(cfg, common.load_env(), day)
-    print(json.dumps(result, ensure_ascii=False, indent=1))
-    return 0 if result["status"] in ("ok", "partial") else 1
-
-
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(common.collector_main(collect, __doc__))

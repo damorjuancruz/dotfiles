@@ -43,10 +43,6 @@ class TestTime(unittest.TestCase):
         with self.assertRaises(ValueError):
             common.parse_iso("2026-10-05T09:00:00")
 
-    def test_to_local(self):
-        utc = common.parse_iso("2026-10-05T13:13:44.655Z")
-        self.assertEqual(common.fmt_hm(common.to_local(utc, TZ)), "10:13")
-
     def test_day_bounds(self):
         start, end = common.day_bounds(date(2026, 10, 5), TZ)
         self.assertEqual(start, local(0, 0))

@@ -138,8 +138,8 @@ class TestGroup(unittest.TestCase):
         self.assertEqual(v["rows"][2]["key"], "b3+b5+b8")
 
     def test_group_and_lunch(self):
-        # El almuerzo se descuenta de SUP-2 (13:00–13:30 sin actividad) aunque al agrupar
-        # SUP-2 quede a la mañana; el hueco queda dentro de 12:30–14:00.
+        # El almuerzo (13:00–13:30, descontado de SUP-2) parte el día: la mañana y la tarde se
+        # agrupan por separado y el SUP-2 de la tarde no pasa a la mañana.
         _, vs = compute()
         v = vs["group+lunch"]
         self.assertEqual(v["errors"], [])
@@ -147,16 +147,43 @@ class TestGroup(unittest.TestCase):
         self.assertEqual(layout(v), [
             ("09:00", "10:00", "SUP-1"),
             ("10:00", "10:30", "SUP-101"),
-            ("10:30", "13:00", "SUP-2"),
+            ("10:30", "12:00", "SUP-2"),
+            ("12:00", "13:00", "SUP-1"),
             ("13:00", "13:30", "lunch"),
-            ("13:30", "16:30", "SUP-1"),
-            ("16:30", "18:00", "SUP-3"),
+            ("13:30", "15:30", "SUP-1"),
+            ("15:30", "17:00", "SUP-3"),
+            ("17:00", "18:00", "SUP-2"),
         ])
+
+    def test_group_with_lunch_keeps_work_on_its_side(self):
+        m, vs = compute(DAY20, DAY20_EVENTS, DAY20_DIGEST)
+        span = {r.data["id"]: (r.start, r.end) for r in m.rows if r.kind == "block"}
+        v = vs["group+lunch"]
+        self.assertEqual(v["errors"], [])
+        lu = next(r for r in v["rows"] if r["kind"] == "lunch")
+        for r in v["rows"]:
+            if r["kind"] != "block":
+                continue
+            for i in r["ids"]:
+                if r["end"] <= lu["start"]:
+                    self.assertLess(span[i][0], lu["end"], (r["key"], i))
+                else:
+                    self.assertGreater(span[i][1], lu["start"], (r["key"], i))
+        # Sin almuerzo, agrupar sigue moviendo tiempo por todo el día.
+        self.assertEqual(vs["group"]["errors"], [])
+
+    def test_check_detects_work_moved_across_lunch(self):
+        m, vs = compute()
+        rows = copy.deepcopy(vs["group+lunch"]["rows"])
+        # 10:30–12:00 SUP-2 pasa a tomar el bloque b8 (SUP-2 16:00–17:00, de la tarde).
+        rows[2]["ids"] = ["b3", "b8"]
+        errors = variants.check(rows, m, vs["group+lunch"]["totals"], True)
+        self.assertTrue(any("otro lado del almuerzo" in e for e in errors), errors)
 
     def test_fewer_worklogs(self):
         _, vs = compute()
         count = {k: sum(r["kind"] == "block" for r in v["rows"]) for k, v in vs.items()}
-        self.assertEqual(count, {"base": 9, "lunch": 9, "group": 5, "group+lunch": 5})
+        self.assertEqual(count, {"base": 9, "lunch": 9, "group": 5, "group+lunch": 7})
 
 
 class TestProvenance(unittest.TestCase):

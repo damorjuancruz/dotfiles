@@ -22,6 +22,9 @@ Almuerzo (`review.lunch_minutes` dentro de `review.lunch_window`):
   3. El hueco del almuerzo se ubica en la ventana configurada, preferentemente en un borde
      entre bloques, y pasa a ser una parte fija.
 
+Agrupar con almuerzo: la mañana y la tarde se agrupan por separado. Se intenta no repetir
+incidencias dentro de cada mitad, pero nunca se mueve trabajo de un lado al otro del almuerzo.
+
 Las variantes se pueden reemplazar a mano con `variant_overrides` en plan.json; se usan solo
 si pasan los mismos chequeos que las automáticas.
 """
@@ -215,7 +218,7 @@ def apply_lunch(items: list, events: list[tuple[datetime, datetime]], cfg: dict,
                 parts = []
                 if it.start < s:
                     parts.append(Fixed("gap", it.start, s, it.data))
-                parts.append(Fixed("lunch", s, s + L, {"from_gap": it.data.get("id")}))
+                parts.append(Fixed("lunch", s, s + L))
                 if s + L < it.end:
                     parts.append(Fixed("gap", s + L, it.end, it.data))
                 info = {"mode": "gap", "gap_id": it.data.get("id"), "start": s, "end": s + L, "discounts": {}}
@@ -244,7 +247,7 @@ def apply_lunch(items: list, events: list[tuple[datetime, datetime]], cfg: dict,
     if best is None:
         return items, {"mode": "none", "reason": "no hay una ventana libre de reuniones, worklogs, huecos o "
                                                   "salidas para ubicar el almuerzo", "discounts": {}}
-    score, p, si, cuts = best
+    _, p, si, cuts = best
     seg = items[si]
     discounts: dict[str, int] = {}
     cut_ids: dict[str, int] = {}
@@ -296,10 +299,10 @@ def apply_lunch(items: list, events: list[tuple[datetime, datetime]], cfg: dict,
     new = []
     if before:
         new.append(Segment(seg.start, at, before))
-    new.append(Fixed("lunch", at, at + L, {}))
+    new.append(Fixed("lunch", at, at + L))
     if after:
         new.append(Segment(at + L, seg.end, after))
-    info = {"mode": "discount", "window": (p, p + L), "activity": score, "start": at, "end": at + L,
+    info = {"mode": "discount", "window": (p, p + L), "start": at, "end": at + L,
             "discounts": discounts, "cut_ids": cut_ids}
     return items[:si] + new + items[si + 1:], info
 
@@ -308,24 +311,36 @@ def apply_lunch(items: list, events: list[tuple[datetime, datetime]], cfg: dict,
 
 
 def apply_group(items: list, cfg: dict) -> list:
+    """Agrupa por incidencia. Si hay almuerzo, la mañana y la tarde se agrupan por separado:
+    no se mueve tiempo de un lado al otro del almuerzo."""
     min_block = cfg["rules"]["min_block_minutes"]
-    segs = [it for it in items if isinstance(it, Segment)]
     # 1. Dentro de cada tramo, un solo bloque por incidencia (en orden de primera aparición).
     allocs: list[dict[str, Piece]] = []
-    for seg in segs:
+    halves: list[list[int]] = [[]]
+    for it in items:
+        if isinstance(it, Fixed) and it.kind == "lunch":
+            halves.append([])
+        if not isinstance(it, Segment):
+            continue
         alloc: dict[str, Piece] = {}
-        for pc in seg.pieces:
+        for pc in it.pieces:
             if pc.issue in alloc:
                 add_src(alloc[pc.issue].src, pc.src)
             else:
                 alloc[pc.issue] = Piece(pc.issue, dict(pc.src))
+        halves[-1].append(len(allocs))
         allocs.append(alloc)
 
-    # 2. Entre tramos: intercambiar tiempo entre incidencias mientras baje la cantidad de bloques.
-    order = list(dict.fromkeys(issue for a in allocs for issue in a))
-    for _ in range(200):
-        if not _swap_once(allocs, order, min_block):
-            break
+    # 2. Entre tramos del mismo lado del almuerzo: intercambiar tiempo entre incidencias
+    #    mientras baje la cantidad de bloques.
+    for half in halves:
+        sub = [allocs[k] for k in half]
+        order = list(dict.fromkeys(issue for a in sub for issue in a))
+        for _ in range(200):
+            if not _swap_once(sub, order, min_block):
+                break
+        for k, a in zip(half, sub):
+            allocs[k] = a
 
     out, k = [], 0
     for it in items:
@@ -462,6 +477,19 @@ def check(rows: list[dict], model, expected_totals: dict[str, int], lunch: bool,
             if minutes(lu) != rv["lunch_minutes"] or lu["start"] < ws or lu["end"] > we:
                 errors.append(f"el almuerzo {common.fmt_hm(lu['start'])}–{common.fmt_hm(lu['end'])} no dura "
                               f"{rv['lunch_minutes']} min dentro de {rv['lunch_window'][0]}–{rv['lunch_window'][1]}")
+            span = {r.data.get("id"): (r.start, r.end) for r in model.rows if r.kind == "block"}
+            for r in rows:
+                if r["kind"] != "block":
+                    continue
+                if r["end"] <= lu["start"]:
+                    moved = [i for i in r["ids"] if span[i][0] >= lu["end"]]
+                elif r["start"] >= lu["end"]:
+                    moved = [i for i in r["ids"] if span[i][1] <= lu["start"]]
+                else:
+                    moved = []
+                if moved:
+                    errors.append(f"{common.fmt_hm(r['start'])}–{common.fmt_hm(r['end'])} {r['issue']}: "
+                                  f"mueve {', '.join(moved)} al otro lado del almuerzo")
     elif lunches:
         errors.append("una variante sin almuerzo no puede tener almuerzo")
     return errors
