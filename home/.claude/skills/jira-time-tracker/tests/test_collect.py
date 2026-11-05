@@ -51,6 +51,8 @@ class TestClaudeCode(unittest.TestCase):
             self.assertIn("primer prompt: arreglá el importador", ev[0]["detail"])
             self.assertEqual(ev[0]["hints"]["issue_keys"], ["SUP-3"])
             self.assertTrue(ev[0]["hints"]["current"])
+            # Solo los prompts reales marcan interacción (no el comando de las 12:06).
+            self.assertEqual(ev[0]["hints"]["prompt_times"], ["2026-10-05T09:00:00-03:00"])
             self.assertIn("ahora los tests", ev[1]["detail"])
 
 
@@ -127,6 +129,53 @@ class TestDigest(unittest.TestCase):
         self.assertIn("↳ Detalle del problema", text)
         self.assertIn("[br=feat/cuit-validation]", text)
         self.assertIn("Fuentes MCP a consultar por el agente: outlook, teams, sharepoint, google_drive", text)
+
+    def test_parallel_sessions(self):
+        def ev(src, start, end, prompts, sid):
+            return common.Event(src, f"2026-10-05T{start}:00-03:00", f"2026-10-05T{end}:00-03:00", f"sesión {sid}",
+                                hints={"prompt_times": [f"2026-10-05T{p}:00-03:00" for p in prompts]},
+                                id=f"{src}:{sid}").to_dict()
+        # A: prompt 10:00 y trabaja sola hasta 11:00. B: interacción 10:20 y 10:40. C: sin prompts.
+        timeline = [ev("cc", "10:00", "11:00", ["10:00"], "a"), ev("t3", "10:15", "10:40", ["10:20", "10:40"], "b"),
+                    ev("cc", "10:30", "10:50", [], "c"), ev("git", "10:30", "10:30", [], "g")]
+        collect.mark_parallel(timeline, 5)
+        a, b, c, g = (e["hints"] for e in timeline)
+        self.assertEqual(a["interactive"], [["2026-10-05T09:55:00-03:00", "2026-10-05T10:00:00-03:00"]])
+        self.assertEqual([(x["start"][11:16], x["end"][11:16], x["by"]) for x in a["shadowed"]],
+                         [("10:15", "10:20", ["t3:b"]), ("10:35", "10:40", ["t3:b"])])
+        self.assertEqual([(x["start"][11:16], x["end"][11:16]) for x in c["shadowed"]], [("10:35", "10:40")])
+        self.assertEqual(b["shadowed"], [])
+        self.assertEqual(b["parallel_interaction"], [])
+        self.assertNotIn("shadowed", g)
+        text = collect.render_digest({**collect.build_digest(DAY, CFG, {}, datetime(2026, 10, 5, 17, 42, tzinfo=TZ)),
+                                      "timeline": timeline}, TZ)
+        self.assertIn("interacción 09:55–10:00 · tapada 10:15–10:20 por t3:b · tapada 10:35–10:40 por t3:b", text)
+        self.assertIn("sin prompts: autónoma · tapada 10:35–10:40 por t3:b", text)
+
+    def test_t3_and_remote_sessions_cross(self):
+        # Thread de Codex en T3 con interacción tapa a una sesión de Claude dentro de T3 (cc con
+        # t3_thread) y a una remota; todas cuentan como sesiones de agente.
+        def ev(src, prompts, id_, **hints):
+            return common.Event(src, "2026-10-05T10:00:00-03:00", "2026-10-05T10:30:00-03:00", id_,
+                                hints={"prompt_times": [f"2026-10-05T{p}:00-03:00" for p in prompts], **hints},
+                                id=id_).to_dict()
+        timeline = [ev("t3", ["10:20"], "t3:codex", provider="codex"),
+                    ev("cc", ["10:00"], "cc:t3claude", t3_thread="x1"),
+                    ev("cc", [], "cc:remota", host="vps")]
+        collect.mark_parallel(timeline, 5)
+        for e in timeline[1:]:
+            self.assertEqual([(x["start"][11:16], x["end"][11:16], x["by"]) for x in e["hints"]["shadowed"]],
+                             [("10:15", "10:20", ["t3:codex"])], e["id"])
+        self.assertEqual(timeline[0]["hints"]["shadowed"], [])
+
+    def test_simultaneous_interaction(self):
+        timeline = [common.Event("cc", "2026-10-05T10:00:00-03:00", "2026-10-05T10:30:00-03:00", "a",
+                                 hints={"prompt_times": ["2026-10-05T10:10:00-03:00"]}, id="cc:a").to_dict(),
+                    common.Event("cc", "2026-10-05T10:00:00-03:00", "2026-10-05T10:30:00-03:00", "b",
+                                 hints={"prompt_times": ["2026-10-05T10:12:00-03:00"]}, id="cc:b").to_dict()]
+        collect.mark_parallel(timeline, 5)
+        self.assertEqual(timeline[0]["hints"]["parallel_interaction"], ["cc:b"])
+        self.assertEqual(timeline[1]["hints"]["parallel_interaction"], ["cc:a"])
 
     def test_range_without_erpnext(self):
         d = collect.build_digest(DAY, CFG, {}, datetime(2026, 10, 5, 17, 42, tzinfo=TZ))

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Colector git local (solo lectura).
 
-Descubre repos y worktrees bajo las raíces configuradas y trae del día:
+Descubre repos y worktrees bajo las raíces configuradas (más los worktrees de esos repos que
+están en otro lado, como los de T3 Code) y trae del día:
   - commits de los emails configurados (todas las refs, sin duplicados entre worktrees).
     Los commits reescritos hoy (amend/rebase de commits de días anteriores) se marcan
     como "reescrito" y no como commit nuevo;
@@ -16,8 +17,6 @@ Uso: python scripts/collectors/git_local.py [--date AAAA-MM-DD]
 
 from __future__ import annotations
 
-import argparse
-import json
 import os
 import re
 import subprocess
@@ -56,6 +55,30 @@ def discover_repos(roots: list[str], max_depth: int) -> list[Path]:
                 continue
             dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith(".")]
     return sorted(set(found))
+
+
+def linked_worktrees(repos: list[Path], roots: list[str]) -> dict[Path, str]:
+    """Worktrees de los repos encontrados que quedan fuera de las raíces (por ejemplo los que crea
+    T3 Code en ~/.t3/worktrees), con su etiqueta `repo@worktree`. Sus commits ya salen del repo
+    principal, pero cada worktree tiene su propio reflog de HEAD."""
+    known = {r.resolve() for r in repos}
+    extra: dict[Path, str] = {}
+    for repo in repos:
+        if not (repo / ".git").is_dir():
+            continue
+        try:
+            out = run_git(repo, "worktree", "list", "--porcelain")
+        except (RuntimeError, subprocess.TimeoutExpired):
+            continue
+        for line in out.splitlines():
+            if not line.startswith("worktree "):
+                continue
+            path = Path(line[len("worktree "):])
+            if path.resolve() in known or not path.is_dir():
+                continue
+            known.add(path.resolve())
+            extra[path] = f"{repo_label(repo, roots)}@{path.name}"
+    return extra
 
 
 def run_git(repo: Path, *args: str) -> str:
@@ -183,12 +206,14 @@ def collect(cfg: dict, env: dict, day: date) -> dict:
     since, until = d_start.isoformat(), d_end.isoformat()
 
     repos = discover_repos(src["roots"], src["max_depth"])
+    extra = linked_worktrees(repos, src["roots"])
+    repos += list(extra)
     events: list[dict] = []
     seen_shas: set[str] = set()
     messages: list[str] = []
     author_args = [f"--author={e}" for e in emails]
     for repo in repos:
-        label = repo_label(repo, src["roots"])
+        label = extra.get(repo) or repo_label(repo, src["roots"])
         path_keys = common.find_issue_keys(label, key_rx)
         try:
             log = run_git(repo, "log", "--all", "--source", f"--since={since}", f"--until={until}",
@@ -242,16 +267,5 @@ def collect(cfg: dict, env: dict, day: date) -> dict:
     }
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--date")
-    args = ap.parse_args()
-    cfg = common.load_config()
-    day = common.parse_day(args.date, common.get_tz(cfg))
-    result = collect(cfg, common.load_env(), day)
-    print(json.dumps(result, ensure_ascii=False, indent=1))
-    return 0 if result["status"] != "error" else 1
-
-
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(common.collector_main(collect, __doc__))

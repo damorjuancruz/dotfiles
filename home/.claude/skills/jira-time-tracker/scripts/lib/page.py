@@ -1,8 +1,8 @@
-"""Página de revisión que se publica como artifact.
+"""Página de revisión que sirve `server.py`.
 
 `build_data` arma el JSON con todo lo que la página necesita (variantes, bloques, evidencia,
 incidencias, transiciones) y `render_html` lo inyecta en la plantilla fija de
-`assets/review.html`. El agente nunca escribe HTML: solo publica el archivo que sale de acá.
+`assets/review.html`. El agente nunca escribe HTML: el servidor sirve el archivo que sale de acá.
 """
 
 from __future__ import annotations
@@ -30,8 +30,7 @@ def misc_label(cfg: dict, issue: str) -> str | None:
     return None
 
 
-def _hm(dt) -> str:
-    return common.fmt_hm(dt)
+_hm = common.fmt_hm
 
 
 def _row_json(r: dict) -> dict:
@@ -48,18 +47,29 @@ def _lunch_json(info: dict | None) -> dict | None:
     for k in ("start", "end"):
         if info.get(k):
             out[k] = _hm(info[k])
-    if info.get("window"):
-        out["window"] = [_hm(info["window"][0]), _hm(info["window"][1])]
-    if info.get("gap_id"):
-        out["gap_id"] = info["gap_id"]
     return out
+
+
+SOURCE_LABELS = {"git": "git", "gh": "GitHub", "cc": "Claude Code", "chrome": "Chrome", "erp": "ERPNext",
+                 "outlook": "Outlook", "teams": "Teams", "jira": "Jira"}
+
+
+def source_label(ev: dict) -> str:
+    """Nombre del origen para la página. Una sesión de Claude que corre dentro de T3 Code deja su
+    transcript como las de Claude Code (fuente `cc`), pero `hints.t3_thread` la distingue."""
+    src, hints = ev.get("source") or "", ev.get("hints") or {}
+    if src == "cc" and hints.get("t3_thread"):
+        return "T3 · Claude"
+    if src == "t3":
+        return f"T3 · {hints['provider']}" if hints.get("provider") else "T3 Code"
+    return SOURCE_LABELS.get(src, src)
 
 
 def _event_json(ev: dict, tz) -> dict:
     s = common.parse_iso(ev["start"]).astimezone(tz)
     e = common.parse_iso(ev["end"]).astimezone(tz)
     hints = {k: v for k, v in (ev.get("hints") or {}).items() if v not in (None, "", [], {})}
-    return {"source": ev.get("source"), "start": _hm(s), "end": _hm(e), "title": ev.get("title", ""),
+    return {"source": ev.get("source"), "label": source_label(ev), "start": _hm(s), "end": _hm(e), "title": ev.get("title", ""),
             "detail": " ".join(str(ev.get("detail") or "").split())[:DETAIL_CHARS], "hints": hints}
 
 
@@ -82,6 +92,10 @@ def issue_info(model, key: str, meta: dict) -> dict:
         "url": None if ni else f"{site}/browse/{key}" if site else None,
         "transitions": m.get("transitions", []),
     }
+    if m.get("suggestion"):
+        info["suggestion"] = m["suggestion"]
+    if m.get("status_note"):
+        info["status_note"] = m["status_note"]
     if m.get("error"):
         info["meta_error"] = m["error"]
     return info
@@ -130,7 +144,6 @@ def build_data(model, vs: dict, meta: dict, raw_events: dict, current: str, warn
         span = int((model.range_end - model.range_start).total_seconds() // 60) - breaks
 
     return {
-        "version": 1,
         "stage": stage,
         "followup_keys": list(followup_keys),
         "date": model.day.isoformat(),
@@ -166,3 +179,10 @@ def render_html(data: dict, template: Path = TEMPLATE) -> str:
     blob = blob.replace("</", "<\\/").replace("<!--", "<\\!--")
     title = f"Horas del {data['day_label'].split()[0].lower()} {data['day_label'].split()[1][:5]}"
     return html.replace("__TITLE__", title).replace("__DATA__", blob)
+
+
+def write_page(path: Path, data: dict) -> None:
+    """Escritura atómica: el servidor recarga la página apenas cambia el archivo."""
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(render_html(data))
+    tmp.replace(path)

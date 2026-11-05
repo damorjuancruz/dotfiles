@@ -136,6 +136,7 @@ label.field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); fon
 .radios label { display: inline-flex; gap: 8px; align-items: center; color: var(--ink); flex-wrap: wrap; justify-self: start; max-width: 100%; cursor: pointer; }
 .radios input[type="radio"] { margin: 0; accent-color: var(--accent); }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.suggest { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--surface-2); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; }
 .warnbox { background: var(--warn-soft); color: var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; }
 
 /* Totales */
@@ -158,7 +159,6 @@ label.field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); fon
 .bar-inner > .actions { flex: none; }
 .bar-status .why { color: var(--muted); }
 .confirm-box { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--warn-soft); color: var(--warn); border-radius: 10px; padding: 8px 12px; font-size: 13.5px; }
-.sent.failed { background: var(--warn-soft); color: var(--warn); }
 .sent { background: var(--ok-soft); color: var(--ok); border-radius: var(--radius); padding: 14px 18px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: center; }
 body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
 
@@ -198,7 +198,6 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
   const D = JSON.parse(document.getElementById("jtt-data").textContent);
   const LEVELS = ["nada", "breve", "normal", "detallado"];
   const LEVEL_LABEL = { nada: "Nada", breve: "Breve", normal: "Normal", detallado: "Detallado" };
-  const DOC = "review/state";
   const main = document.getElementById("main");
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const dur = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h}h${String(r).padStart(2, "0")}m` : h ? `${h}h` : `${r}m`; };
@@ -214,24 +213,34 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
         fields: Object.fromEntries((n.fields || []).map((f) => [f.key, f.value ?? ""])) };
     }
     return { round: D.round, modes: { ...D.modes }, confirmed, absorb: {}, reassign: {}, new_requests: {}, levels: { ...D.levels },
-      notes: {}, gaps: {}, new_issues: nis, followup: clone(D.followup || {}), global_note: "", action: null, sent: false };
+      notes: {}, gaps: {}, new_issues: nis, followup: clone(D.followup || {}), global_note: "", asks: {}, action: null, sent: false };
   }
   let state = initialState();
-  const ui = { open: new Set(), confirmLoad: false, confirmCancel: false, generating: new Set(), notice: null };
+  const ui = { open: new Set(), confirmLoad: false, confirmCancel: false };
 
-  let db = null, comments = null, sample = null, saveTimer = null, storeReady = false, sendAnchor = null;
+  // El servidor local (scripts/server.py) guarda el estado y le avisa a Claude. El token viene en la URL.
+  const TOKEN = new URLSearchParams(location.search).get("t") || "";
+  const BUILD = window.JTT_BUILD || "";
+  let online = false, saveTimer = null, storeReady = false, reloading = false;
   const setStatus = (t) => { document.getElementById("save-status").textContent = t; };
 
+  async function api(path, opts = {}) {
+    const res = await fetch(path, { method: opts.method || "GET", headers: { "Content-Type": "application/json", "X-JTT-Token": TOKEN },
+      body: opts.body === undefined ? undefined : JSON.stringify(opts.body) });
+    if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+    return res.json();
+  }
+
   function scheduleSave() {
-    if (!db) return;
+    if (!online) return;
     clearTimeout(saveTimer);
     setStatus("Guardando…");
     saveTimer = setTimeout(saveNow, 500);
   }
   async function saveNow() {
     clearTimeout(saveTimer);
-    if (!db) return false;
-    try { await db.doc(DOC).set(clone(state)); setStatus("Cambios guardados"); return true; }
+    if (!online) return false;
+    try { await api("/api/state", { method: "PUT", body: clone(state) }); setStatus("Cambios guardados"); return true; }
     catch (e) { setStatus("No se pudieron guardar los cambios: " + (e && e.message ? e.message : e)); return false; }
   }
 
@@ -269,10 +278,7 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
   // Cambio de incidencia: se guarda por bloque del plan, así vale igual en las cuatro combinaciones.
   const movable = (r) => r.kind === "block" && r.ids.every((i) => D.blocks[i].action === "new");
   const targetOf = (r) => (r.kind === "block" && r.ids.map((i) => state.reassign[i]).find(Boolean)) || "";
-  function targetLabel(t) {
-    if (t.startsWith("new:")) return `nueva incidencia ${t.slice(4)}`;
-    return t;
-  }
+  const targetLabel = (t) => (t.startsWith("new:") ? `nueva incidencia ${t.slice(4)}` : t);
   function setTarget(r, value) {
     let t = value;
     if (value === "new") {
@@ -343,12 +349,9 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
     const what = { load: "Pediste cargar todo en Jira.", cancel: "Pediste cancelar la carga.", review: "Enviaste esta ronda de revisión.",
       apply: "Pediste aplicar los cambios de estado y terminar.", apply_more: "Pediste aplicar los cambios de estado y ver los siguientes.",
       done: "Terminaste sin más cambios de estado." }[state.action] || "";
-    const failed = ui.notice && ui.notice !== "ok";
-    const msg = failed
-      ? `${what} Quedó guardado, pero el aviso no le llegó a Claude (${esc(ui.notice)}). Escribí <b>listo</b> en la terminal de Claude Code para que lo procese.`
-      : `${what} Claude la está procesando; la página se actualiza sola cuando publique la próxima versión.`;
-    return `<div class="sent ${failed ? "failed" : ""}"><span>${msg}</span>
-      <span class="actions">${failed && comments ? `<button class="btn small" data-act="renotify">Avisar de nuevo</button>` : ""}<button class="btn small" data-act="unlock">Seguir editando</button></span></div>`;
+    const msg = `${what} Claude la está procesando; la página se recarga sola con la versión nueva. Si en un par de minutos no pasa nada, escribí <b>listo</b> en el chat con Claude.`;
+    return `<div class="sent"><span>${msg}</span>
+      <span class="actions"><button class="btn small" data-act="unlock">Seguir editando</button></span></div>`;
   }
 
   function controls(v) {
@@ -454,7 +457,7 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
     return `<div class="ev">${evs.map(([id, e]) => {
       const hints = Object.entries(e.hints || {}).map(([k, val]) => `<span>${esc(k)}: ${esc(Array.isArray(val) ? val.join(", ") : typeof val === "object" ? JSON.stringify(val) : val)}</span>`).join("");
       return `<div class="ev-item"><span class="ev-when num">${e.start === e.end ? e.start : `${e.start}–${e.end}`}</span>
-        <span class="ev-title"><span class="src">${esc(e.source)}</span>${esc(e.title)}</span>
+        <span class="ev-title"><span class="src">${esc(e.label || e.source)}</span>${esc(e.title)}</span>
         ${e.detail ? `<span class="ev-detail">${esc(e.detail)}</span>` : ""}
         ${hints ? `<span class="ev-hints">${hints}</span>` : ""}</div>`;
     }).join("")}</div>`;
@@ -486,7 +489,6 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
       return `<span class="num">${esc(b.start)}–${esc(b.end)} · ${amount} · ${esc((b.comments || {}).breve || b.comment || "")}</span>`;
     }).join("")}</div>` : "";
     const warns = r.ids.map((id) => D.blocks[id].warn).filter(Boolean).map((w) => `<div class="warnbox">${esc(w)}</div>`).join("");
-    const canAbsorb = !existing;
     return `<div class="detail">
       <section>
         ${commentBox}
@@ -499,7 +501,7 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
           <textarea id="note-${esc(r.key)}" data-bind="note" data-key="${esc(r.key)}" placeholder="Ej.: esto fue SIT-412, o partilo en dos a las 11:00">${esc(state.notes[r.key] || "")}</textarea></label>
         <div class="actions">
           ${b0.action === "existing" ? "" : `<button class="btn small ${rowConfirmed(r) ? "on" : ""}" data-act="confirm" data-key="${esc(r.key)}">${rowConfirmed(r) ? "Confirmada" : "Confirmar"}</button>`}
-          ${canAbsorb ? `<button class="btn small ${marked(r) ? "on" : ""}" data-act="absorb" data-key="${esc(r.key)}">${marked(r) ? "Se absorbe en los vecinos" : "Absorber en los vecinos"}</button>` : ""}
+          ${!existing ? `<button class="btn small ${marked(r) ? "on" : ""}" data-act="absorb" data-key="${esc(r.key)}">${marked(r) ? "Se absorbe en los vecinos" : "Absorber en los vecinos"}</button>` : ""}
         </div>
       </section>
       <section>
@@ -624,16 +626,18 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
           ? `<select id="${esc(id)}" data-bind="tr-field" data-issue="${esc(k)}" data-field="${esc(f.key)}"><option value="">(sin valor)</option>${f.allowed.map((a) => `<option ${a === val ? "selected" : ""}>${esc(a)}</option>`).join("")}</select>`
           : `<input type="text" id="${esc(id)}" data-bind="tr-field" data-issue="${esc(k)}" data-field="${esc(f.key)}" value="${esc(val)}">`}</label>`;
       }).join("") : "";
-      const gen = ui.generating.has(k);
+      const gen = !!(state.asks || {})[k];
       return `<div class="item">
         <div class="item-head"><h3>${i.url ? `<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(k)}</a>` : esc(k)} · ${esc(i.summary)}</h3>${i.status ? `<span class="pill">${esc(i.status)}</span>` : ""}</div>
         ${i.meta_error ? `<div class="warnbox">No se pudieron traer las transiciones: ${esc(i.meta_error)}</div>` : ""}
+        ${!FOLLOWUP && i.suggestion ? `<div class="suggest"><span>${i.suggestion.by === "claude" ? "Claude sugiere" : "Sugerencia"}: <b>${esc(i.suggestion.transition)} → ${esc(i.suggestion.to)}</b> · ${esc(i.suggestion.reason)}</span>${s.transition_id === i.suggestion.transition_id ? `<span class="muted">aplicada</span>` : `<button class="btn small" data-act="use-sugg" data-issue="${esc(k)}">Usar sugerencia</button>`}</div>` : ""}
+        ${!FOLLOWUP && i.status_note ? `<div class="muted" style="font-size:13px">${esc(i.status_note)}</div>` : ""}
         <label class="field" for="tr-${esc(k)}">Transición${trSel}</label>
         ${trFields}
         <label class="field" for="rc-${esc(k)}">Comentario de resolución
           <textarea id="rc-${esc(k)}" rows="5" data-bind="res-comment" data-issue="${esc(k)}" placeholder="Escribilo o generalo con Claude">${esc(s.comment || "")}</textarea></label>
         <div class="actions" style="align-items:center">
-          ${sample ? `<button class="btn small" data-act="gen" data-issue="${esc(k)}" ${gen ? "disabled" : ""}>${gen ? "Generando…" : (s.comment ? "Regenerar con Claude" : "Generar con Claude")}</button>` : ""}
+          ${online ? `<button class="btn small" data-act="gen" data-issue="${esc(k)}" ${gen ? "disabled" : ""}>${gen ? "Claude lo está redactando…" : (s.comment ? "Pedir otro a Claude" : "Pedírselo a Claude")}</button>` : ""}
           <label class="switch" style="font-weight:600;font-size:14px"><input type="checkbox" id="pub-${esc(k)}" data-act="publish" data-issue="${esc(k)}" ${s.publish ? "checked" : ""}> Publicarlo</label>
         </div>
       </div>`;
@@ -652,9 +656,9 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
     const bar = document.getElementById("bar-actions");
     const why = document.getElementById("why");
     if (!storeReady) { bar.innerHTML = ""; why.textContent = ""; return; }
-    if (!db) {
+    if (!online) {
       bar.innerHTML = "";
-      why.textContent = "No hay acceso al almacenamiento del artifact: no se puede enviar la revisión. Abrí la página en claude.ai con tu cuenta.";
+      why.textContent = "Sin conexión con el servidor local de la revisión: no se puede guardar ni enviar. Si no vuelve solo, pedile a Claude que lo levante de nuevo.";
       return;
     }
     const { hard, round } = blockers();
@@ -672,8 +676,8 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
       [hard.length ? "Para cargar falta: " + hard.join(", ") + "." : "", round.length ? "Antes de cargar, Claude tiene que procesar: " + round.join(", ") + "." : ""].filter(Boolean).join(" ");
     if (ui.confirmLoad) {
       const v = variant();
-      const nWl = v.rows.filter((r) => r.kind === "block" && D.blocks[r.ids[0]].action !== "existing").length;
-      const hours = dur(v.rows.filter((r) => r.kind === "block" && D.blocks[r.ids[0]].action !== "existing").reduce((a, r) => a + r.minutes, 0));
+      const load = v.rows.filter((r) => r.kind === "block" && D.blocks[r.ids[0]].action !== "existing");
+      const nWl = load.length, hours = dur(load.reduce((a, r) => a + r.minutes, 0));
       const nNew = Object.values(state.new_issues).filter((s) => s.decision === "create").length;
       const nTr = Object.values(state.followup).filter((f) => f.transition_id).length;
       const nCm = Object.values(state.followup).filter((f) => f.publish && (f.comment || "").trim()).length;
@@ -706,55 +710,42 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
     if (state.confirmed[r.key]) ui.open.delete(r.key);
   }
 
-  const SEND_ERRORS = {
-    claude_unavailable: "Claude no estaba escuchando o el clic no llegó a tiempo",
-    rate_limited: "demasiados envíos seguidos",
-    no_session: "no hay una sesión de Claude escuchando esta página",
-  };
-
+  // Guarda el estado y avisa a Claude en un solo pedido: el servidor escribe el evento recién
+  // después de guardar, así que Claude nunca lee un estado a medio guardar.
   async function send(action) {
+    clearTimeout(saveTimer);
     state.action = action;
     state.sent = true;
-    state.sent_at = new Date().toISOString();
     ui.confirmLoad = ui.confirmCancel = false;
-    // El aviso a Claude tiene que salir del clic mismo (si se demora, la plataforma lo rechaza),
-    // así que se guarda en paralelo. `plan.py review` rechaza un estado que todavía no dice
-    // `sent`, por lo que Claude nunca procesa uno a medio guardar.
-    const saving = saveNow();
-    const notice = await notify(action);
-    const ok = await saving;
-    if (!ok) { state.sent = false; state.action = null; ui.notice = null; }
+    let ok = false;
+    try { await api("/api/send", { method: "POST", body: clone(state) }); ok = true; }
+    catch (e) { state.sent = false; state.action = null; }
     render();
-    setStatus(!ok ? "No se pudo enviar: no se guardó el estado." : notice === "ok" ? "Enviado a Claude." : "Guardado, pero Claude no recibió el aviso.");
+    setStatus(ok ? "Enviado a Claude." : "No se pudo enviar: revisá la conexión con el servidor local.");
   }
 
-  // Avisa a Claude con un comentario. Devuelve "ok" o el motivo del fallo (queda en ui.notice).
-  async function notify(action) {
-    let why = "la página no tiene acceso a los comentarios";
-    if (comments) {
-      try {
-        const anchor = sendAnchor || await comments.anchorFor(document.getElementById("day"));
-        const label = { load: "cargar todo en Jira", cancel: "cancelar la carga", review: "revisar los cambios",
-          apply: "aplicar los cambios de estado y terminar", apply_more: "aplicar los cambios de estado y seguir", done: "terminar" }[action];
-        await comments.sendToClaude({ anchor, text: `Ronda ${D.round} enviada: ${label}. El estado está en la db del artifact (${DOC}).` });
-        why = "ok";
-      } catch (e) {
-        why = SEND_ERRORS[e && e.code] || (e && (e.code || e.message)) || "error desconocido";
-      }
-    }
-    ui.notice = why;
-    return why;
+  // Respuesta de Claude a un pedido de comentario (llega por SSE o al recargar la página).
+  function applyReply(a) {
+    const raw = a && (a.text ?? a.reply);
+    if (raw === null || raw === undefined || !state.asks || state.asks[a.issue] !== a.id) return;
+    const text = String(raw).trim();
+    delete state.asks[a.issue];
+    const s = (state.followup[a.issue] = state.followup[a.issue] || {});
+    s.comment = text;
+    if (text) s.publish = true;
+    scheduleSave();
+    render();
   }
 
   async function generate(issue) {
-    if (!sample) return;
+    if (!online) return;
     const i = info(issue);
     const s = (state.followup[issue] = state.followup[issue] || {});
     const tr = (i.transitions || []).find((t) => t.id === s.transition_id);
     const rows = variant().rows.filter((r) => r.kind === "block" && r.issue === issue);
     const work = rows.map((r) => `- ${r.start}–${r.end}: ${commentText(r) || (rowComments(r).normal || "")}`).join("\n");
     const ev = [...new Set(rows.flatMap((r) => r.ids.flatMap((id) => D.blocks[id].evidence || [])))].map((e) => D.events[e]).filter(Boolean)
-      .slice(0, 40).map((e) => `- [${e.source}] ${e.title}${e.detail ? ": " + e.detail.slice(0, 160) : ""}`).join("\n");
+      .slice(0, 40).map((e) => `- [${e.label || e.source}] ${e.title}${e.detail ? ": " + e.detail.slice(0, 160) : ""}`).join("\n");
     const prompt = `Redactá un comentario de resolución para la incidencia de Jira ${issue} «${i.summary}».
 Estado actual: ${i.status || "desconocido"}.${tr ? ` Va a pasar a: ${tr.to}.` : ""}
 Descripción (extracto): ${i.description || "(sin descripción)"}
@@ -764,27 +755,44 @@ Evidencia de la actividad:
 ${ev || "(sin evidencia)"}
 
 Escribí en español rioplatense, en 2 a 5 oraciones, qué se hizo y cómo quedó resuelto. Sin saludo, sin firma y sin markdown. No inventes datos que no estén arriba. Devolvé solo el texto del comentario.`;
-    ui.generating.add(issue);
-    render();
     try {
-      const res = await sample(prompt, { modelTier: "default", onText: ({ text }) => {
-        const ta = document.getElementById(`rc-${issue}`);
-        if (ta) ta.value = text;
-      } });
-      s.comment = (res.text || "").trim();
-      if (s.comment) s.publish = true;
-      scheduleSave();
+      const { id } = await api("/api/ask", { method: "POST", body: { kind: "comment", issue, prompt } });
+      state.asks = { ...(state.asks || {}), [issue]: id };
+      setStatus("Le pediste el comentario a Claude.");
+      await saveNow();
     } catch (e) {
-      setStatus(e && e.code === "rate_limited" ? "Claude está ocupado; probá de nuevo en un rato." : "No se pudo generar el comentario.");
-    } finally {
-      ui.generating.delete(issue);
-      render();
+      setStatus("No se pudo pedir el comentario: " + (e && e.message ? e.message : e));
     }
+    render();
+  }
+
+  async function reloadPage() {
+    if (reloading) return;
+    reloading = true;
+    if (storeReady && online) await saveNow();
+    location.reload();
+  }
+
+  function connectEvents() {
+    const es = new EventSource(`/api/events?t=${encodeURIComponent(TOKEN)}`);
+    es.addEventListener("hello", (e) => {
+      const d = JSON.parse(e.data);
+      if (BUILD && d.build && d.build !== BUILD) { reloadPage(); return; }
+      if (!online) { online = true; setStatus("Conectado de nuevo"); render(); }
+    });
+    es.addEventListener("reload", () => reloadPage());
+    es.addEventListener("reply", (e) => applyReply(JSON.parse(e.data)));
+    es.onerror = () => {
+      if (!online) return;
+      online = false;
+      setStatus("Se perdió la conexión con el servidor local; reintentando…");
+      render();
+    };
   }
 
   main.addEventListener("click", (ev) => {
     const el = ev.target.closest("[data-act]");
-    if (!el || state.sent && !["unlock", "renotify"].includes(el.dataset.act)) return;
+    if (!el || state.sent && el.dataset.act !== "unlock") return;
     const act = el.dataset.act;
     if (act === "toggle") {
       if (ev.target.closest("button:not(.caret), a, input, select, textarea, label")) return;
@@ -793,8 +801,7 @@ Escribí en español rioplatense, en 2 a 5 oraciones, qué se hizo y cómo qued�
       render();
       return;
     }
-    if (act === "unlock") { state.sent = false; state.action = null; ui.notice = null; scheduleSave(); render(); return; }
-    if (act === "renotify") { notify(state.action).then(render); return; }
+    if (act === "unlock") { state.sent = false; state.action = null; scheduleSave(); render(); return; }
     if (act === "confirm") {
       ev.stopPropagation();
       const key = el.dataset.key, wasOpen = ui.open.has(key);
@@ -821,6 +828,13 @@ Escribí en español rioplatense, en 2 a 5 oraciones, qué se hizo y cómo qued�
         if (act === "confirm-all" || high) state.confirmed[r.key] = true;
       }
     } else if (act === "gen") { generate(el.dataset.issue); return; }
+    else if (act === "use-sugg") {
+      const k = el.dataset.issue;
+      const sg = info(k).suggestion;
+      if (!sg) return;
+      Object.assign((state.followup[k] ||= {}), { transition_id: sg.transition_id, transition: sg.transition, to: sg.to, fields: { ...(sg.fields || {}) } });
+      scheduleSave(); render(); return;
+    }
     else return;
     scheduleSave();
     render();
@@ -851,21 +865,12 @@ Escribí en español rioplatense, en 2 a 5 oraciones, qué se hizo y cómo qued�
     } else if (el.dataset.bind === "gap-issue") {
       const id = el.dataset.id;
       state.gaps[id] = { action: "assign", issue: el.value };
-    } else if (el.dataset.bind === "tr-field") {
-      ((state.followup[el.dataset.issue] ||= {}).fields ||= {})[el.dataset.field] = el.value;
-      scheduleSave();
-      renderBar();
-      return;
-    } else if (el.dataset.bind === "ni-field") {
-      ((state.new_issues[el.dataset.ref] ||= { fields: {} }).fields ||= {})[el.dataset.field] = el.value;
-      scheduleSave();
-      renderBar();
-      return;
     } else return;
     scheduleSave();
     render();
   });
 
+  // Los <select> también disparan "input": los campos que no cambian el layout se guardan acá sin re-render.
   main.addEventListener("input", (ev) => {
     const el = ev.target, b = el.dataset.bind;
     if (b === "note") state.notes[el.dataset.key] = el.value;
@@ -873,9 +878,9 @@ Escribí en español rioplatense, en 2 a 5 oraciones, qué se hizo y cómo qued�
     else if (b === "new-request") (state.new_requests[el.dataset.req] ||= {}).hint = el.value;
     else if (b === "ni-note") (state.new_issues[el.dataset.ref] ||= { fields: {} }).note = el.value;
     else if (b === "ni-key") (state.new_issues[el.dataset.ref] ||= { fields: {} }).existing_key = el.value.trim().toUpperCase();
-    else if (b === "ni-field" && el.tagName !== "SELECT") ((state.new_issues[el.dataset.ref] ||= { fields: {} }).fields ||= {})[el.dataset.field] = el.value;
+    else if (b === "ni-field") ((state.new_issues[el.dataset.ref] ||= { fields: {} }).fields ||= {})[el.dataset.field] = el.value;
     else if (b === "res-comment") (state.followup[el.dataset.issue] ||= {}).comment = el.value;
-    else if (b === "tr-field" && el.tagName !== "SELECT") ((state.followup[el.dataset.issue] ||= {}).fields ||= {})[el.dataset.field] = el.value;
+    else if (b === "tr-field") ((state.followup[el.dataset.issue] ||= {}).fields ||= {})[el.dataset.field] = el.value;
     else return;
     scheduleSave();
     renderBar();
@@ -894,25 +899,21 @@ Escribí en español rioplatense, en 2 a 5 oraciones, qué se hizo y cómo qued�
 
   // ---------------------------------------------------------------- arranque
   render();
-  const use = (name) => (window.claude && window.claude.use ? window.claude.use(name).catch(() => null) : Promise.resolve(null));
-  use("db").then(async (d) => {
-    db = d;
-    if (db) {
-      try {
-        const snap = await db.doc(DOC).get();
-        const saved = snap.exists ? snap.data() : null;
-        if (saved && saved.round === D.round) state = { ...initialState(), ...saved };
-        setStatus(saved && saved.round === D.round ? "Se recuperaron tus cambios de esta ronda" : "Listo para revisar");
-      } catch (e) { setStatus("No se pudo leer el estado guardado"); }
-    } else setStatus("Sin almacenamiento");
+  (async () => {
+    try {
+      const saved = await api("/api/state");
+      online = true;
+      const same = saved && saved.round === D.round && (saved.stage || "review") === D.stage;
+      if (same) state = { ...initialState(), ...saved };
+      state.stage = D.stage;
+      setStatus(same ? "Se recuperaron tus cambios de esta ronda" : "Listo para revisar");
+      for (const a of await api("/api/asks")) applyReply(a);
+    } catch (e) {
+      setStatus(TOKEN ? "No se pudo conectar con el servidor local" : "Falta el token en la URL: abrí el link que te dio Claude");
+    }
     storeReady = true;
     render();
-  });
-  use("comments").then(async (c) => {
-    comments = c;
-    // El ancla se calcula de antemano para que el envío no tenga que esperar nada antes de avisar.
-    if (c) try { sendAnchor = await c.anchorFor(document.getElementById("day")); } catch (e) { sendAnchor = null; }
-  });
-  use("sample").then((s) => { sample = s; if (s) render(); });
+    if (TOKEN) connectEvents();
+  })();
 })();
 </script>

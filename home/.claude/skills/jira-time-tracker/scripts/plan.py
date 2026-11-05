@@ -2,20 +2,19 @@
 """Núcleo determinista del plan del día.
 
 El agente escribe <state>/<fecha>/plan.json (el plan base) una sola vez; este script lo
-valida, deriva las variantes (agrupar / almuerzo), arma la página de revisión que se publica
-como artifact, aplica lo que el usuario decidió en ella y emite las operaciones de carga.
+valida, deriva las variantes (agrupar / almuerzo), arma la página de revisión que sirve
+`server.py`, aplica lo que el usuario decidió en ella y emite las operaciones de carga.
 
 Uso:
   plan.py [--date AAAA-MM-DD] validate
-  plan.py [--date ...] build [--note "texto para el usuario"] [--refresh-jira]
+  plan.py [--date ...] build [--note "texto para el usuario"] [--refresh-jira] [--suggest KEY=TRANSICIÓN:motivo ...]
   plan.py [--date ...] build --followup [--suggest KEY=TRANSICIÓN ...] [--note "..."]
   plan.py [--date ...] comments < comentarios.json
   plan.py [--date ...] new-issue < borrador.json
-  plan.py [--date ...] review [estado.json]
+  plan.py [--date ...] review [estado.json | -]
   plan.py [--date ...] edit "OP" ["OP" ...]
   plan.py [--date ...] expand N|ID
   plan.py [--date ...] ops
-  plan.py [--date ...] url https://claude.ai/...
 
 Formato de plan.json (horas locales "HH:MM"; los `id` los asigna el script):
   {
@@ -35,7 +34,7 @@ Formato de plan.json (horas locales "HH:MM"; los `id` los asigna el script):
     "variant_overrides"?: {"group": [{"start", "end", "ids": [...]} | {"start", "end", "lunch": true}
                                      | {"start", "end", "gap": "g1"}]}
   }
-El resto de las claves (modes, levels, followup, created, stage, round, note, artifact_url) las
+El resto de las claves (modes, levels, followup, created, stage, round, note) las
 escribe el script. `new-issue` agrega un borrador NEW-n después de la primera escritura:
   {"project", "type", "summary", "parent"?, "similar", "fields", "blocks": ["b3", "b5"]}
 """
@@ -55,7 +54,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from collectors import jira  # noqa: E402
-from lib import common, page, variants  # noqa: E402
+from lib import common, page, status_hints, variants  # noqa: E402
 
 ACTIONS = ("new", "existing", "adjust")
 CONFIDENCES = ("alta", "media", "baja")
@@ -534,10 +533,6 @@ class EditError(Exception):
     pass
 
 
-def _hm(dt: datetime) -> str:
-    return common.fmt_hm(dt)
-
-
 class Editor:
     """Aplica operaciones sobre un Model ya construido y deja plan.json consistente."""
 
@@ -595,7 +590,7 @@ class Editor:
         if (start, end) == (r.start, r.end):
             return
         r.start, r.end = start, end
-        r.data["start"], r.data["end"] = _hm(start), _hm(end)
+        r.data["start"], r.data["end"] = common.fmt_hm(start), common.fmt_hm(end)
         r.data["confirmed"] = False
         self.touched.add(r.data.get("id"))
         if r.kind == "block" and r.data.get("worklog_id"):
@@ -615,7 +610,7 @@ class Editor:
             self.changed.remove(r)
 
     def add(self, kind: str, data: dict, start: datetime, end: datetime) -> Row:
-        data["start"], data["end"] = _hm(start), _hm(end)
+        data["start"], data["end"] = common.fmt_hm(start), common.fmt_hm(end)
         data.pop("id", None)
         (self.m.plan.setdefault("blocks" if kind == "block" else "gaps", [])).append(data)
         ensure_ids(self.m.plan)
@@ -912,7 +907,7 @@ def edit_summary(model: Model, changed: list[int]) -> str:
             continue
         mark = "✓" if is_confirmed(r) else "·"
         what = r.data.get("issue", "") if r.kind == "block" else ("no trabajado" if r.data.get("kind") == "unworked" else "hueco")
-        out.append(f"{r.data.get('id')} {mark} {_hm(r.start)}–{_hm(r.end)} {what}".rstrip())
+        out.append(f"{r.data.get('id')} {mark} {common.fmt_hm(r.start)}–{common.fmt_hm(r.end)} {what}".rstrip())
     reviewable = [r for r in model.rows if r.kind != "break"]
     pend = [r.data.get("id", f"#{r.n}") for r in pending(model)]
     out.append(f"Confirmados {sum(is_confirmed(r) for r in reviewable)}/{len(reviewable)}"
@@ -924,21 +919,25 @@ def edit_summary(model: Model, changed: list[int]) -> str:
 # --------------------------------------------------------------------------- revisión
 
 
-def fetch_meta(cfg: dict, env: dict, keys: list[str], path: Path, refresh: bool = False,
-               today: date | None = None) -> dict:
-    """Estado y transiciones disponibles de cada incidencia.
-
-    Se cachea en <state>/<fecha>/jira_meta.json solo para las rondas de la misma sesión: una caché
-    que se trajo otro día se descarta."""
-    today = (today or datetime.now(common.get_tz(cfg)).date()).isoformat()
+def _day_cache(path: Path, refresh: bool, today: str) -> dict:
+    """Las incidencias cacheadas en `path`, si se trajeron hoy. Una caché de otro día se descarta:
+    sirve para las rondas de la misma sesión, no para reusar datos viejos."""
     stored = {} if refresh else (common.read_json(path, {}) or {})
-    cache = dict(stored.get("issues") or {}) if stored.get("fetched") == today else {}
+    return dict(stored.get("issues") or {}) if stored.get("fetched") == today else {}
+
+
+def fetch_meta(cfg: dict, env: dict, keys: list[str], path: Path, refresh: bool = False,
+               today: date | None = None, day: date | None = None) -> dict:
+    """Estado y transiciones disponibles de cada incidencia, cacheados en <state>/<fecha>/jira_meta.json."""
+    today = (today or datetime.now(common.get_tz(cfg)).date()).isoformat()
+    cache = _day_cache(path, refresh, today)
     missing = [k for k in keys if k not in cache or cache[k].get("error")]
     if missing:
         token = env.get("JIRA_API_TOKEN")
         if token:
             client = jira.JiraClient(cfg["jira"]["site"], cfg["jira"]["email"], token)
-            cache.update(jira.fetch_issue_meta(client, missing))
+            since = common.day_bounds(day, common.get_tz(cfg))[0] if day else None
+            cache.update(jira.fetch_issue_meta(client, missing, since))
         else:
             cache.update({k: {"error": "falta JIRA_API_TOKEN"} for k in missing})
         common.write_json(path, {"fetched": today, "issues": cache})
@@ -949,6 +948,50 @@ def meta_keys(model: Model) -> list[str]:
     new_refs = {ni.get("ref") for ni in model.plan.get("new_issues", [])}
     keys = dict.fromkeys(r.data.get("issue") for r in model.blocks)
     return [k for k in keys if k and k not in new_refs and not page.misc_label(model.cfg, k)]
+
+
+def status_suggestions(model: Model, meta: dict, raw_events: dict, path: Path, refresh: bool,
+                       wanted: list[str]) -> list[str]:
+    """Agrega a `meta[key]` la transición sugerida (`suggestion`) y el aviso (`status_note`) de
+    cada incidencia con horas. Las señales de GitHub y git se cachean en `path` por el día en
+    que se trajeron. `wanted` son las sugerencias del agente (KEY=TRANSICIÓN[:motivo]): pisan
+    las del script. Devuelve el reporte para el agente."""
+    cfg, tz = model.cfg, common.get_tz(model.cfg)
+    day = date.fromisoformat(model.digest["date"])
+    keys = [k for k, m in meta.items() if not m.get("error")]
+    today_s = datetime.now(tz).date().isoformat()
+    cache = _day_cache(path, refresh, today_s)
+    missing = [k for k in keys if k not in cache]
+    if missing:
+        try:
+            links = status_hints.links_from_blocks(
+                ((r.data.get("issue"), r.data.get("evidence", [])) for r in model.blocks), raw_events)
+            cache.update(status_hints.gather(cfg, missing, day, links))
+        except Exception as e:  # sin señales externas igual se sugiere lo que dice Jira
+            cache.update({k: {"prs": [], "last_commit": None, "error": str(e)[:200]} for k in missing})
+        common.write_json(path, {"fetched": today_s, "issues": cache})
+    agent = parse_suggestions(wanted)
+    out = []
+    for k in keys:
+        m = meta[k]
+        res = status_hints.suggest(m, cache.get(k) or {}, day, tz)
+        sugg, note = res["suggestion"], res["note"]
+        if k in agent:
+            t = match_transition(m.get("transitions", []), agent[k][0])
+            if t:
+                sugg = {"transition_id": t["id"], "transition": t["name"], "to": t["to"], "fields": {},
+                        "reason": agent[k][1] or "lo sugiere Claude por la actividad del día", "by": "claude"}
+            else:
+                out.append(f"  ! {k}: la sugerencia {agent[k][0]!r} no coincide con ninguna transición disponible")
+        m["suggestion"], m["status_note"] = sugg, note
+        prs = ", ".join(f"#{p['number']} {p['state']}" for p in (cache.get(k) or {}).get("prs", []))
+        line = f"  {k} [{m.get('status') or '?'}]" + (f" · PRs {prs}" if prs else "")
+        line += f" · sugerida: {sugg['transition']} → {sugg['to']} ({sugg['reason']})" if sugg else " · sin sugerencia"
+        out.append(line + (f" · {note}" if note else ""))
+    for k in agent:
+        if k not in keys:
+            out.append(f"  ! {k} no tiene horas en este plan (o no se pudo leer de Jira)")
+    return ["Estado sugerido de las incidencias con horas:", *out] if out else []
 
 
 def describe_row(model: Model, r: dict) -> str:
@@ -1002,12 +1045,10 @@ def set_comments(plan: dict, data: dict) -> list[str]:
 
 
 def apply_review(plan: dict, digest: dict, cfg: dict, raw: Path, st: dict) -> tuple[dict, list[str]]:
-    """Aplica el estado que guardó la página (db del artifact). Devuelve (plan nuevo, reporte)."""
+    """Aplica el estado que guardó la página (page_state.json). Devuelve (plan nuevo, reporte)."""
     work = copy.deepcopy(plan)
     rnd = work.get("round", 1)
     report = []
-    if st.get("round") != rnd:
-        report.append(f"! el estado es de la ronda {st.get('round')} y el plan está en la {rnd}")
     old_model = validate(build_model(copy.deepcopy(work), digest, cfg))
     old_rows = {}
     for v in compute_variants(old_model, raw).values():
@@ -1071,7 +1112,7 @@ def apply_review(plan: dict, digest: dict, cfg: dict, raw: Path, st: dict) -> tu
             parts = []
             for bid in sorted(bids, key=variants.block_id_order):
                 r = find_row(old_model, bid)
-                parts.append(f"{bid} {_hm(r.start)}–{_hm(r.end)} (hoy en {r.data.get('issue')})" if r else bid)
+                parts.append(f"{bid} {common.fmt_hm(r.start)}–{common.fmt_hm(r.end)} (hoy en {r.data.get('issue')})" if r else bid)
             hint = ((hints.get(n) or {}).get("hint") or "").strip()
             report.append(f"  nueva {n} → {', '.join(parts)}" + (f": «{hint}»" if hint else " (sin indicaciones: deducila de la evidencia)"))
 
@@ -1090,15 +1131,6 @@ def apply_review(plan: dict, digest: dict, cfg: dict, raw: Path, st: dict) -> tu
     return work, report
 
 
-def unwrap_state(st) -> dict:
-    """El documento puede venir solo o envuelto con su metadata ({"data": {...}, "version": N})."""
-    if not isinstance(st, dict):
-        return {}
-    if "round" not in st and isinstance(st.get("data"), dict):
-        return st["data"]
-    return st
-
-
 def load_checklist(model: Model, vs: dict[str, dict], followup_only: bool = False) -> list[str]:
     """Lo que falta hacer en Jira después de una acción `load` (o `apply` en la ronda de seguimiento), en orden."""
     out = []
@@ -1109,7 +1141,7 @@ def load_checklist(model: Model, vs: dict[str, dict], followup_only: bool = Fals
         out.append(f"  crear {ni['ref']}: [{ni.get('project')}/{ni.get('type')}] {ni.get('summary')}"
                    + (f" (padre {ni['parent']})" if ni.get("parent") else "") + (f" · {fields}" if fields else ""))
     skipped = [] if followup_only else [ni["ref"] for ni in model.plan.get("new_issues", [])
-                                         if ni.get("decision") not in ("create",)]
+                                         if ni.get("decision") != "create"]
     if skipped:
         out.append(f"  ! incidencias nuevas sin decisión de crear: {', '.join(skipped)}")
     for key, f in (model.plan.get("followup") or {}).items():
@@ -1119,6 +1151,16 @@ def load_checklist(model: Model, vs: dict[str, dict], followup_only: bool = Fals
                        f"(id {f['transition_id']}){extra}")
         if f.get("publish") and (f.get("comment") or "").strip():
             out.append(f"  comentario de resolución en {key}: {' '.join(f['comment'].split())}")
+    return out
+
+
+def parse_suggestions(items: list[str]) -> dict[str, tuple[str, str]]:
+    """`--suggest KEY=TRANSICIÓN[:motivo]` → {KEY: (transición, motivo)}."""
+    out = {}
+    for item in items:
+        k, _, v = item.partition("=")
+        trans, _, why = v.partition(":")
+        out[k.strip().upper()] = (trans.strip(), why.strip())
     return out
 
 
@@ -1139,10 +1181,7 @@ def followup_round(plan: dict, meta: dict, suggest: list[str]) -> list[str]:
     """Prepara la ronda de seguimiento de las incidencias creadas: las transiciones sugeridas
     quedan preseleccionadas. Devuelve el reporte con el estado y las transiciones de cada una."""
     keys = plan.get("created") or []
-    wanted = {}
-    for item in suggest:
-        k, _, v = item.partition("=")
-        wanted[k.strip().upper()] = v
+    wanted = {k: trans for k, (trans, _) in parse_suggestions(suggest).items()}
     plan["stage"] = "followup"
     plan["followup"] = {}
     out = []
@@ -1184,16 +1223,15 @@ def main(argv: list[str] | None = None) -> int:
     p_build.add_argument("--followup", action="store_true",
                          help="ronda de seguimiento: cambio de estado de las incidencias creadas")
     p_build.add_argument("--suggest", action="append", default=[], metavar="KEY=TRANSICIÓN",
-                         help="con --followup: transición a preseleccionar (id, estado destino o nombre)")
+                         help="transición sugerida (id, estado destino o nombre). Con --followup queda preseleccionada; "
+                              "en la revisión se muestra como sugerencia de Claude y admite KEY=TRANSICIÓN:motivo")
     sub.add_parser("new-issue", help="agrega un borrador de incidencia nueva desde stdin (ver arriba)")
     sub.add_parser("comments", help="carga comentarios desde stdin: {\"b3\": {breve, normal, detallado}, ...}")
-    p_rev = sub.add_parser("review", help="aplica el estado de la página leído de la db del artifact")
-    p_rev.add_argument("file", nargs="?", help="JSON guardado con ArtifactData (out_dir); sin archivo, lee stdin")
+    p_rev = sub.add_parser("review", help="aplica el estado que guardó la página")
+    p_rev.add_argument("file", nargs="?", help="JSON del estado; por defecto <state>/page_state.json, `-` lee stdin")
     p_exp = sub.add_parser("expand")
     p_exp.add_argument("ref", help="id (b3, g1) o número de fila")
     sub.add_parser("ops")
-    p_url = sub.add_parser("url", help="guarda la URL del artifact publicado")
-    p_url.add_argument("url")
     p_edit = sub.add_parser("edit", description=EDIT_HELP, formatter_class=argparse.RawDescriptionHelpFormatter)
     p_edit.add_argument("operations", nargs="+", help="una operación por argumento (ver --help)")
     args = ap.parse_args(argv)
@@ -1229,11 +1267,6 @@ def main(argv: list[str] | None = None) -> int:
         return 1 if model.errors else 0
     if args.cmd == "expand":
         print(expand(model, args.ref, raw))
-        return 0
-    if args.cmd == "url":
-        plan["artifact_url"] = args.url
-        common.write_json(plan_path, plan)
-        print(f"URL guardada: {args.url}")
         return 0
     if args.cmd == "edit":
         try:
@@ -1276,21 +1309,21 @@ def main(argv: list[str] | None = None) -> int:
         return 1 if new_model.errors else 0
     if args.cmd == "review":
         try:
-            st = json.loads(Path(args.file).read_text() if args.file else sys.stdin.read())
+            src = args.file or plan_path.parent / "page_state.json"
+            st = json.loads(sys.stdin.read() if src == "-" else Path(src).read_text())
         except (OSError, json.JSONDecodeError) as e:
             print(f"✗ no se pudo leer el estado: {e}")
             return 1
-        st = unwrap_state(st)
-        # El aviso a Claude sale en paralelo con el guardado: un estado de otra ronda o sin `sent`
-        # todavía no es el que mandó el usuario.
+        st = st if isinstance(st, dict) else {}
+        # Un estado de otra ronda o sin `sent` todavía no es el que mandó el usuario.
         rnd = plan.get("round", 1)
         if st.get("round") != rnd or not st.get("sent"):
             what = (f"es de la ronda {st.get('round')} y el plan está en la {rnd}" if st.get("round") != rnd
                     else "todavía no dice que se envió")
-            print(f"✗ el estado guardado {what}: volvé a leerlo en unos segundos (no se aplicó nada)")
+            print(f"✗ el estado guardado {what}: el usuario todavía no envió esta ronda (no se aplicó nada)")
             return 1
         followup_stage = plan.get("stage") == "followup"
-        new_plan, report = apply_review(plan, digest, cfg, raw, st if isinstance(st, dict) else {})
+        new_plan, report = apply_review(plan, digest, cfg, raw, st)
         common.write_json(plan_path, new_plan)
         model = validate(build_model(new_plan, digest, cfg))
         vs = compute_variants(model, raw)
@@ -1338,7 +1371,7 @@ def main(argv: list[str] | None = None) -> int:
         data = page.build_data(model, vs, meta, load_raw_events(raw), variant_name(modes(plan, cfg)), [],
                                confirmed_keys(model, vs), stage="followup", followup_keys=keys)
         out_path = plan_path.parent / "review.html"
-        out_path.write_text(page.render_html(data))
+        page.write_page(out_path, data)
         print(f"review.html: {out_path} (ronda {plan['round']}, seguimiento de {', '.join(keys)})")
         print("\n".join(report))
         return 0
@@ -1358,12 +1391,16 @@ def main(argv: list[str] | None = None) -> int:
             print("\n".join(v_err + missing) + "\n(no se generó la página)")
             return 1
         meta = {} if args.no_jira else fetch_meta(cfg, common.load_env(), meta_keys(model),
-                                                   plan_path.parent / "jira_meta.json", args.refresh_jira)
+                                                   plan_path.parent / "jira_meta.json", args.refresh_jira,
+                                                   day=date.fromisoformat(digest["date"]))
+        events = load_raw_events(raw)
+        status_report = [] if args.no_jira else status_suggestions(
+            model, meta, events, plan_path.parent / "status_signals.json", args.refresh_jira, args.suggest)
         current = variant_name(modes(plan, cfg))
-        data = page.build_data(model, vs, meta, load_raw_events(raw), current, model.warnings,
+        data = page.build_data(model, vs, meta, events, current, model.warnings,
                                confirmed_keys(model, vs))
         out_path = plan_path.parent / "review.html"
-        out_path.write_text(page.render_html(data))
+        page.write_page(out_path, data)
         print(f"review.html: {out_path} (ronda {plan['round']}, variante inicial {current})")
         for name, v in vs.items():
             tot = " · ".join(f"{k} {common.fmt_duration(m)}" for k, m in sorted(v["totals"].items(), key=lambda kv: -kv[1]))
@@ -1383,6 +1420,8 @@ def main(argv: list[str] | None = None) -> int:
         for k, m in meta.items():
             if m.get("error"):
                 print(f"! {k}: sin estado/transiciones ({m['error'][:120]})")
+        if status_report:
+            print("\n".join(status_report))
         return 0
     return 2
 

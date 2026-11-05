@@ -93,6 +93,30 @@ class TestGitParsing(unittest.TestCase):
             self.assertEqual(activity[0]["hints"]["branch"], "feat/SUP-7-algo")
             self.assertEqual(activity[0]["hints"]["issue_keys"], ["SUP-7"])
 
+    def test_linked_worktree_outside_roots(self):
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as other:
+            repo = Path(tmp) / "proj"
+            env = {"GIT_AUTHOR_NAME": "Yo", "GIT_AUTHOR_EMAIL": "you@company.com",
+                   "GIT_COMMITTER_NAME": "Yo", "GIT_COMMITTER_EMAIL": "you@company.com",
+                   "GIT_AUTHOR_DATE": "2026-10-05T10:00:00-03:00", "GIT_COMMITTER_DATE": "2026-10-05T10:00:00-03:00",
+                   "PATH": "/usr/bin:/bin", "HOME": tmp}
+            subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+            subprocess.run(["git", "-C", str(repo), "commit", "-q", "--allow-empty", "-m", "base"], check=True, env=env)
+            wt = Path(other) / "t3-abc"  # como los worktrees que crea T3 Code en ~/.t3/worktrees
+            subprocess.run(["git", "-C", str(repo), "worktree", "add", "-q", "-b", "feat/SUP-8", str(wt)], check=True, env=env)
+            env2 = {**env, "GIT_AUTHOR_DATE": "2026-10-05T10:05:00-03:00", "GIT_COMMITTER_DATE": "2026-10-05T10:05:00-03:00"}
+            subprocess.run(["git", "-C", str(wt), "commit", "-q", "--allow-empty", "-m", "en el worktree"], check=True, env=env2)
+
+            self.assertEqual(git_local.linked_worktrees([repo], [tmp]), {wt: "proj@t3-abc"})
+            cfg = {**CFG, "sources": {**CFG["sources"], "git_local": {**CFG["sources"]["git_local"], "roots": [tmp]}}}
+            res = git_local.collect(cfg, {}, date(2026, 10, 5))
+            commits = [e for e in res["events"] if e["title"].startswith("commit")]
+            self.assertEqual(sorted(c["title"].split(": ")[1] for c in commits), ["base", "en el worktree"])
+            wt_activity = [e for e in res["events"] if e["title"].startswith("actividad git en proj@t3-abc")]
+            self.assertEqual(len(wt_activity), 1)
+            self.assertEqual(wt_activity[0]["hints"]["branch"], "feat/SUP-8")
+            self.assertEqual(wt_activity[0]["hints"]["issue_keys"], ["SUP-8"])
+
     def test_rewritten_commit(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Path(tmp) / "proj"

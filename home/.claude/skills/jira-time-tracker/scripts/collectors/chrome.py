@@ -11,8 +11,6 @@ Uso: python scripts/collectors/chrome.py [--date AAAA-MM-DD]
 
 from __future__ import annotations
 
-import argparse
-import json
 import re
 import shutil
 import sqlite3
@@ -150,16 +148,5 @@ def collect(cfg: dict, env: dict, day: date, visits=None) -> dict:
     return {"source": SOURCE, "status": "ok", "visits": len(visits), "events": events}
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--date")
-    args = ap.parse_args()
-    cfg = common.load_config()
-    day = common.parse_day(args.date, common.get_tz(cfg))
-    result = collect(cfg, common.load_env(), day)
-    print(json.dumps(result, ensure_ascii=False, indent=1))
-    return 0 if result["status"] == "ok" else 1
-
-
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(common.collector_main(collect, __doc__))

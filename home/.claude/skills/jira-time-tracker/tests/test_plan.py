@@ -536,7 +536,7 @@ class TestExpandAndCli(unittest.TestCase):
                  "levels": {"b2": "breve"}, "notes": {"b2": "esto era SUP-9"}, "global_note": "todo bien",
                  "absorb": {}, "gaps": {}, "action": "review", "sent": True}
         with mock.patch("sys.stdin", io.StringIO(json.dumps(state))):
-            code, out = self.run_cli("review")
+            code, out = self.run_cli("review", "-")
         self.assertEqual(code, 0)
         self.assertIn("[b2 · 09:15–10:05 · SUP-1 Importador de remitos] esto era SUP-9", out)
         self.assertIn("[general] todo bien", out)
@@ -552,8 +552,8 @@ class TestExpandAndCli(unittest.TestCase):
         state = {"round": 1, "modes": {"group": True, "lunch": True}, "action": "load", "sent": True,
                  "followup": {"SUP-1": {"transition_id": "31", "transition": "Resolver", "to": "Resuelto",
                                         "fields": {"resolution": "Listo"}, "comment": "Se corrigió", "publish": True}}}
-        common.write_json(self.dir / "state.json", {"data": state, "version": 3})
-        code, out = self.run_cli("review", str(self.dir / "state.json"))
+        common.write_json(self.dir / "page_state.json", state)
+        code, out = self.run_cli("review")
         self.assertIn("Listo para cargar: 4 operaciones", out)
         self.assertIn("transición SUP-1: Resolver (id 31)", out)
         self.assertIn("comentario de resolución en SUP-1: Se corrigió", out)
