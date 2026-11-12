@@ -18,7 +18,7 @@ layer-rule {
 window-rule {
   match title="Microsoft Teams"
   match title="Outlook"
-  match title="Chatwoot"
+  match title="Braulio"
 
   open-on-output "eDP-1"
 }
