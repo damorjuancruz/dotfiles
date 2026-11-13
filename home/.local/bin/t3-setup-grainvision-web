@@ -17,10 +17,10 @@ copy() { [ -e "$MAIN/$1" ] && {
   cp -a --reflink=auto "$MAIN/$1" "$WT/$1"
 } || true; }
 
-log "Copiando vendor, node_modules y assets (reflink)"
-ASSETS_COPIED=0
-[ -e public/mix-manifest.json ] || ASSETS_COPIED=1
-for p in vendor node_modules public/dist public/mix-manifest.json public/service-worker.js; do
+# node_modules no se copia: pnpm lo arma con symlinks a rutas de su checkout. pnpm install
+# lo crea desde el store compartido (volumen grainvision-pnpm-store) en pocos segundos.
+log "Copiando vendor (reflink)"
+for p in vendor; do
   [ -e "$p" ] || copy "$p"
 done
 
@@ -100,27 +100,8 @@ app() { docker compose exec -T -u sail laravel-app "$@"; }
 log "composer install (no hace nada si vendor está al día)"
 app composer install --no-interaction
 
-log "yarn install (no hace nada si node_modules está al día)"
-app yarn install --frozen-lockfile || echo "!! yarn.lock no coincide con package.json; queda sin actualizar"
-
-MIX_INPUTS=(resources/js resources/sass resources/images webpack.mix.js package.json yarn.lock)
-assets_stale() {
-  if [ "$ASSETS_COPIED" = 0 ]; then
-    [ -n "$(find "${MIX_INPUTS[@]}" -newer public/mix-manifest.json -print -quit)" ]
-    return
-  fi
-  [ -f "$MAIN/public/mix-manifest.json" ] || return 0
-  [ -e "$MAIN/public/hot" ] && return 0
-  for p in "${MIX_INPUTS[@]}"; do diff -rq "$MAIN/$p" "$WT/$p" >/dev/null 2>&1 || return 0; done
-  [ -n "$(find "${MIX_INPUTS[@]/#/$MAIN/}" -newer "$MAIN/public/mix-manifest.json" -print -quit)" ] && return 0
-  return 1
-}
-if assets_stale; then
-  log "Assets atrasados: yarn dev"
-  app yarn dev
-else
-  log "Assets al día"
-fi
+log "pnpm install (no hace nada si node_modules está al día)"
+app pnpm install --frozen-lockfile || echo "!! pnpm-lock.yaml no coincide con package.json; queda sin actualizar"
 
 log "Migrando y sembrando"
 for i in $(seq 1 60); do
