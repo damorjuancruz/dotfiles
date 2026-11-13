@@ -754,7 +754,7 @@ ${work || "(sin detalle)"}
 Evidencia de la actividad:
 ${ev || "(sin evidencia)"}
 
-Escribí en español rioplatense, en 2 a 5 oraciones, qué se hizo y cómo quedó resuelto. Sin saludo, sin firma y sin markdown. No inventes datos que no estén arriba. Devolvé solo el texto del comentario.`;
+Escribí en español, en 2 a 5 oraciones, qué se hizo y cómo quedó resuelto. Usá voz impersonal con "se" ("se corrigió", "se agregó"), nunca primera persona. No nombres branches ni commits. En general no nombres las herramientas con las que se hizo el trabajo (Claude Code, T3 Code, Chrome), salvo que sean el objeto del trabajo. Sin saludo, sin firma y sin markdown. No inventes datos que no estén arriba. Devolvé solo el texto del comentario.`;
     try {
       const { id } = await api("/api/ask", { method: "POST", body: { kind: "comment", issue, prompt } });
       state.asks = { ...(state.asks || {}), [issue]: id };

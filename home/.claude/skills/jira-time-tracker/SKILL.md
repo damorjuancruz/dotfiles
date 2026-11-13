@@ -157,9 +157,8 @@ Objetivo: **minutos totales por incidencia** a lo largo del día. Criterios, en 
    - **Huecos:** los tramos sin actividad van a `gaps` como `kind: "open"`.
    - **Sin checkin:** poné `start` en el plan con la hora de la primera actividad.
    - Cada bloque nuevo lleva:
-     - `comments`: el mismo trabajo en tres niveles, en español: `breve` (una línea corta),
-       `normal` (una o dos oraciones) y `detallado` (bitácora técnica: qué se hizo, dónde y
-       por qué). Sin inventar nada que no esté en la evidencia.
+     - `comments`: el mismo trabajo en tres niveles (`breve`, `normal` y `detallado`), con el
+       formato de "Redacción de los comentarios", al final de esta fase.
      - `confidence`: alta, media o baja.
      - `sources`: abreviaturas `git`, `gh`, `cc`, `t3`, `chrome`, `erp`, `outlook`, `teams`,
        `docs`, `jira`.
@@ -210,6 +209,42 @@ Objetivo: **minutos totales por incidencia** a lo largo del día. Criterios, en 
    lo indica claramente y el script no lo ve, por ejemplo un prompt o mail que dice que el
    trabajo quedó cerrado sin PR: `build --suggest "KEY=<transición>:<motivo corto>"`. Si una
    sugerencia del script contradice la evidencia del día, reemplazala de la misma forma.
+
+### Redacción de los comentarios
+
+Estas reglas valen para los tres niveles de cada bloque, para los comentarios de las filas
+agrupadas y para los comentarios de resolución:
+
+- Todo en español y en voz impersonal con "se" ("se migraron", "se corrigió"). Nunca en
+  primera persona, ni mezclando las dos voces en un mismo comentario.
+- Sin nombres de branches ni hashes de commit. Tampoco se habla de "commits" o "push": se
+  describe el cambio que hicieron.
+- En general, no se nombran las herramientas con las que se hizo el trabajo (Claude Code,
+  T3 Code, Claude in Chrome, la guía de revisión de T3). Se describe el trabajo. La excepción
+  es cuando la herramienta es el objeto del trabajo, por ejemplo un skill o un script de T3 Code.
+- Solo lo que está en la evidencia. Si no se sabe por qué se hizo algo, no se escribe un motivo.
+
+Cada nivel agrega información que el anterior no tiene. `normal` resume y `detallado` suma
+detalle. Si `detallado` solo reparte las oraciones de `normal` en viñetas, le falta contenido.
+Los ejemplos describen el mismo trabajo en los tres niveles:
+
+- `breve`: una oración en una línea, con lo principal del bloque.
+  > Se migraron los modelos a atributos de Laravel 13 y se quitó el symlink de
+  > docker-compose.prod.yml.
+- `normal`: una o dos oraciones cortas, con qué se hizo y dónde (el repo, el sistema o el
+  módulo). Nombra los cambios sin enumerar cada archivo ni explicar motivos.
+  > Se migraron los modelos de grainvision-web a atributos de Laravel 13 y se quitó el
+  > symlink de docker-compose.prod.yml.
+- `detallado`: una viñeta por cambio, con guion (`- `). Suma lo que `normal` omite: qué
+  propiedades, archivos, componentes o pantallas se tocaron, por qué (si la evidencia lo
+  dice), qué se probó y qué quedó pendiente.
+  ```
+  - Se reemplazaron las propiedades table, fillable y hidden por los atributos de Laravel 13 en todos los modelos de grainvision-web.
+  - Se eliminó el symlink docker-compose.prod.yml porque el archivo es un contrato con el deploy y no puede depender de otro.
+  - Se aplicaron a la migración los cambios del diff de Laravel 13 que afectan a los modelos.
+  ```
+
+Los comentarios de resolución siguen las mismas reglas, en prosa de 2 a 5 oraciones.
 
 ## Fase 4 — Revisión en la página
 
