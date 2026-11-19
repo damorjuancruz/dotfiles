@@ -16,6 +16,25 @@ documentos, propone bloques de tiempo y los carga **solo** después de que los c
   Claude Code te da el link. La página guarda cada cambio en el servidor, el agente se entera de
   los envíos siguiendo su log de eventos y la página se recarga sola cuando el agente arma una
   versión nueva. Al terminar, el agente apaga el servidor.
+- En la página, los comentarios de los worklogs y el resumen y los campos de las incidencias
+  nuevas se editan directamente. Los niveles (breve, normal, detallado) son textos sugeridos:
+  elegís uno y lo retocás si querés.
+- Dentro de T3 Code la página toma la paleta del tema base de T3, en claro o en oscuro según la
+  apariencia del navegador integrado. Fuera de T3 usa la paleta IEA (solo claro).
+- Se puede correr varias veces en el mismo día, por ejemplo antes del almuerzo y a la salida.
+  Cada corrida es una tanda: al cerrarla, el agente la archiva en `state/<fecha>/runs/<n>/`, y
+  la siguiente arranca en el corte de la última que se cargó. El almuerzo se descuenta en una
+  sola tanda.
+- La carga en Jira la hace `plan.py load` por la API (con `JIRA_API_TOKEN`), recién cuando
+  apretás "Cargar en Jira": crea las incidencias nuevas, carga los worklogs, aplica
+  transiciones y comentarios, y verifica. Cada paso queda en `state/<fecha>/load_log.json`; si
+  algo falla, se retoma desde ese paso.
+- Las fuentes MCP (Teams, mails, calendario, SharePoint, Drive) las consulta un subagente por
+  fuente, en paralelo; cada uno escribe `state/<fecha>/raw/mcp_<fuente>.json`.
+- El uso de esa página cuenta como actividad del día en que se hace (fuente `jtt`): la página le
+  avisa al servidor como máximo una vez por minuto, solo si la estás usando (mouse, teclado,
+  scroll) con la pestaña visible. Si te vas o la dejás de fondo no hay avisos, y después de
+  `sources.review_page.idle_gap_minutes` (5 por defecto) sin uso el tramo se corta.
 
 ## Instalación
 
@@ -58,6 +77,9 @@ chmod 600 <.claude>/jira-time-tracker/.env
 | `<.claude>/jira-time-tracker/state/<fecha>/` | datos crudos, digest, plan, estado de Jira y página de revisión del día |
 | `<.claude>/jira-time-tracker/state/<fecha>/status_signals.json` | PRs vinculados y último commit de cada incidencia, para sugerir el estado |
 | `<.claude>/jira-time-tracker/state/<fecha>/page_state.json` | lo que el usuario marcó en la página |
+| `<.claude>/jira-time-tracker/state/metrics.jsonl` | una línea por tanda cerrada con sus métricas (ver `scripts/metrics.py report`) |
+| `<.claude>/jira-time-tracker/state/<fecha>/runs.json` y `runs/<n>/` | tandas cerradas del día (rango, resultado, almuerzo) y sus archivos |
+| `<.claude>/jira-time-tracker/state/activity/<fecha>.jsonl` | uso de la página de revisión, por el día en que se usó |
 | `<.claude>/jira-time-tracker/state/<fecha>/server.*` | puerto y token (`server.json`), log de eventos para el agente (`server.log`) y errores (`server.err`) |
 | `assets/review.html` | plantilla de la página de revisión (el script le inyecta los datos) |
 

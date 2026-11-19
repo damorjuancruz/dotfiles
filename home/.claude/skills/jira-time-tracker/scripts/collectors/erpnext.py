@@ -28,6 +28,7 @@ from lib import common  # noqa: E402
 
 SOURCE = "erp"
 MERGE_GAP_MINUTES = 10
+BULK_MIN = 3  # documentos del mismo tipo editados igual en tanda: desde cuántos se juntan en un evento
 SKIP_COMMENT_TYPES = {"Like"}
 
 
@@ -139,6 +140,59 @@ def merge_doc_events(items: list[tuple[datetime, str, str, list[str]]]) -> list[
     return events
 
 
+def _bulk_key(ev: dict) -> tuple | None:
+    """Clave de edición en masa: mismo tipo de documento y mismos campos (ediciones) o mismo
+    texto (comentarios, que en las tandas suelen ser automáticos)."""
+    doctype, title, detail = (ev.get("hints") or {}).get("doctype"), ev["title"], ev.get("detail") or ""
+    if not doctype:
+        return None
+    if title.startswith("editó "):
+        return ("editó", doctype, detail.partition("; campos: ")[2])
+    if title.startswith("comment en "):
+        return ("comentó", doctype, detail)
+    return None
+
+
+def merge_bulk(events: list[dict], min_count: int = BULK_MIN) -> list[dict]:
+    """Junta en un solo evento las ediciones o comentarios en masa: al menos `min_count`
+    documentos del mismo tipo, con los mismos campos o el mismo texto, sin cortes de más de
+    MERGE_GAP_MINUTES entre uno y el siguiente. El resto de los eventos queda igual."""
+    gap = timedelta(minutes=MERGE_GAP_MINUTES)
+    runs: list[list[dict]] = []
+    open_run: dict[tuple, list[dict]] = {}
+    for ev in sorted(events, key=lambda e: e["start"]):
+        k = _bulk_key(ev)
+        if k is None:
+            runs.append([ev])
+            continue
+        run = open_run.get(k)
+        if run and common.parse_iso(ev["start"]) - common.parse_iso(run[-1]["end"]) <= gap:
+            run.append(ev)
+        else:
+            run = [ev]
+            runs.append(run)
+            open_run[k] = run
+    out = []
+    for run in runs:
+        k = _bulk_key(run[0])
+        if k is None or len(run) < min_count:
+            out += run
+            continue
+        kind, doctype, what = k
+        names = [(e.get("hints") or {}).get("docname") or "" for e in run]
+        clean = [" ".join(n.split()) for n in names]
+        span = ", ".join(clean) if len(clean) <= 6 else f"{clean[0]} … {clean[-1]}"
+        detail = f"{span}; campos: {what}" if kind == "editó" and what else span
+        if kind == "comentó":
+            detail = f"«{what[:160]}» · {span}"
+        out.append(common.Event(
+            SOURCE, min(e["start"] for e in run), max(e["end"] for e in run),
+            f"{kind} {len(run)} {doctype} (en tanda)", detail,
+            {"doctype": doctype, "docnames": clean}, "normal",
+        ).to_dict())
+    return sorted(out, key=lambda e: e["start"])
+
+
 def collect(cfg: dict, env: dict, day: date, client: FrappeClient | None = None, now: datetime | None = None) -> dict:
     tz = common.get_tz(cfg)
     erp = cfg["erpnext"]
@@ -211,7 +265,7 @@ def collect(cfg: dict, env: dict, day: date, client: FrappeClient | None = None,
             {"doctype": a.get("reference_doctype"), "docname": a.get("reference_name")}, "weak",
         ).to_dict())
 
-    result["events"] = sorted(events, key=lambda e: e["start"])
+    result["events"] = merge_bulk(events)
     if any("no se pudo leer" in m for m in result["messages"]):
         result["status"] = "partial"
     return result

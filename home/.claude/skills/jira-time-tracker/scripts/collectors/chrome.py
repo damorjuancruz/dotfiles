@@ -6,6 +6,13 @@ de `session_gap_minutes` sin visitar ese dominio) y extrae keys de Jira, URLs de
 issues de GitHub y doctype/docname de ERPNext. Los dominios de `deny_domains` se
 descartan por completo.
 
+Ruido que no es uso real y se descarta antes de agrupar:
+  - aperturas automáticas de apps instaladas (PWA como Teams u Outlook que se abren al iniciar
+    la sesión): visitas con transición AUTO_BOOKMARK sin visita de origen;
+  - restauración de pestañas al abrir Chrome: ráfagas de recargas (transición RELOAD) de al
+    menos `restore_min_domains` sitios distintos en `restore_window_seconds`;
+  - sitios de `ignore_domains`, cuyo uso real se ve en otra fuente (Teams: los mensajes).
+
 Uso: python scripts/collectors/chrome.py [--date AAAA-MM-DD]
 """
 
@@ -29,6 +36,9 @@ CHROME_EPOCH = datetime(1601, 1, 1, tzinfo=timezone.utc)
 MAX_TITLES = 5
 GH_RX = re.compile(r"^/([^/]+/[^/]+)/(pull|issues)/(\d+)")
 SKIP_SCHEMES = ("chrome", "chrome-extension", "about", "devtools", "data", "blob")
+CORE_MASK = 0xFF
+AUTO_BOOKMARK = 2
+RELOAD = 8
 
 
 def to_chrome_time(dt: datetime) -> int:
@@ -39,7 +49,7 @@ def from_chrome_time(us: int) -> datetime:
     return CHROME_EPOCH + timedelta(microseconds=us)
 
 
-def read_visits(history: Path, start: datetime, end: datetime) -> list[tuple[datetime, str, str]]:
+def read_visits(history: Path, start: datetime, end: datetime) -> list[tuple]:
     """Copia el History (Chrome lo mantiene bloqueado) y lee las visitas del rango."""
     with tempfile.TemporaryDirectory() as tmp:
         copy = Path(tmp) / "History"
@@ -47,13 +57,36 @@ def read_visits(history: Path, start: datetime, end: datetime) -> list[tuple[dat
         con = sqlite3.connect(f"file:{copy}?mode=ro", uri=True)
         try:
             rows = con.execute(
-                "SELECT v.visit_time, u.url, u.title FROM visits v JOIN urls u ON v.url = u.id "
+                "SELECT v.visit_time, u.url, u.title, v.transition, v.from_visit FROM visits v JOIN urls u ON v.url = u.id "
                 "WHERE v.visit_time >= ? AND v.visit_time < ? ORDER BY v.visit_time",
                 (to_chrome_time(start), to_chrome_time(end)),
             ).fetchall()
         finally:
             con.close()
-    return [(from_chrome_time(t), url, title or "") for t, url, title in rows]
+    return [(from_chrome_time(t), url, title or "", tr, fv) for t, url, title, tr, fv in rows]
+
+
+def drop_noise(visits: list[tuple], cfg: dict) -> tuple[list[tuple], dict]:
+    """Saca las aperturas automáticas de apps y las restauraciones de pestañas. Las visitas
+    sin transición (tuplas de 3) quedan como están. Devuelve (visitas, cuántas se sacaron)."""
+    src = cfg["sources"]["chrome"]
+    min_domains, window = src.get("restore_min_domains", 4), timedelta(seconds=src.get("restore_window_seconds", 30))
+    core = lambda v: (v[3] & CORE_MASK) if len(v) > 3 and v[3] is not None else None  # noqa: E731
+    reloads = [v for v in visits if core(v) == RELOAD]
+    restored: set[int] = set()
+    for i, v in enumerate(reloads):
+        burst = [w for w in reloads[i:] if w[0] - v[0] <= window]
+        if len({domain_of(w[1]) for w in burst}) >= min_domains:
+            restored.update(id(w) for w in burst)
+    out, dropped = [], {"apertura de app": 0, "restauración de pestañas": 0}
+    for v in visits:
+        if core(v) == AUTO_BOOKMARK and not (len(v) > 4 and v[4]):
+            dropped["apertura de app"] += 1
+        elif id(v) in restored:
+            dropped["restauración de pestañas"] += 1
+        else:
+            out.append(v)
+    return out, dropped
 
 
 def domain_of(url: str) -> str:
@@ -88,13 +121,13 @@ def url_hints(url: str, title: str, key_rx, erp_host: str | None) -> dict:
 def group_sessions(visits, cfg: dict, tz) -> list[dict]:
     src = cfg["sources"]["chrome"]
     gap = timedelta(minutes=src["session_gap_minutes"])
-    deny = [d.lower() for d in src["deny_domains"]]
+    deny = [d.lower() for d in src["deny_domains"]] + [d.lower() for d in src.get("ignore_domains", [])]
     key_rx = common.issue_key_regex(list(cfg["projects"]))
     erp_host = urlparse(cfg["erpnext"].get("url") or "").hostname
 
     groups: list[dict] = []
     open_by_domain: dict[str, dict] = {}
-    for ts, url, title in visits:
+    for ts, url, title, *_ in visits:
         scheme = urlparse(url).scheme
         if scheme in SKIP_SCHEMES:
             continue
@@ -144,8 +177,12 @@ def collect(cfg: dict, env: dict, day: date, visits=None) -> dict:
             visits = read_visits(history, d_start, d_end)
         except (sqlite3.Error, OSError) as e:
             return {"source": SOURCE, "status": "error", "message": str(e), "events": []}
+    visits, dropped = drop_noise(visits, cfg)
     events = group_sessions(visits, cfg, tz)
-    return {"source": SOURCE, "status": "ok", "visits": len(visits), "events": events}
+    res = {"source": SOURCE, "status": "ok", "visits": len(visits), "events": events}
+    if any(dropped.values()):
+        res["messages"] = ["descartadas: " + ", ".join(f"{n} por {k}" for k, n in dropped.items() if n)]
+    return res
 
 
 if __name__ == "__main__":

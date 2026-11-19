@@ -216,7 +216,9 @@ def collect(cfg: dict, env: dict, day: date) -> dict:
         label = extra.get(repo) or repo_label(repo, src["roots"])
         path_keys = common.find_issue_keys(label, key_rx)
         try:
-            log = run_git(repo, "log", "--all", "--source", f"--since={since}", f"--until={until}",
+            # Las refs de checkpoints de T3 Code (refs/t3/…) alcanzan los mismos commits que las
+            # branches: sin excluirlas, --source etiqueta el commit con el checkpoint y se pierde la branch.
+            log = run_git(repo, "log", "--exclude=refs/t3/*", "--all", "--source", f"--since={since}", f"--until={until}",
                           *author_args, f"--format=%H{SEP}%aI{SEP}%cI{SEP}%S{SEP}%s")
             reflog = run_git(repo, "reflog", "show", "--date=iso-strict", f"--format=%gd{SEP}%gs", "HEAD", "-n", REFLOG_LIMIT)
         except (RuntimeError, subprocess.TimeoutExpired) as e:

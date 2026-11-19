@@ -180,7 +180,8 @@ def collect(cfg: dict, env: dict, day: date, current_thread: str | None = None) 
             keys = common.find_issue_keys(" ".join([t["branch"], t["cwd"], t["title"], *prompts]), key_rx)
             hints = {"repo": t["project"], "cwd": t["cwd"], "branch": t["branch"], "issue_keys": keys,
                      "thread": short_id(root), "provider": t["provider"],
-                     "prompt_times": [ts.isoformat() for ts, p in seg if p]}
+                     "prompt_times": [ts.isoformat() for ts, p in seg if p],
+                     "prompts": common.prompt_list(seg)}
             if root == current_thread:
                 hints["current"] = True
             title = f"thread T3 Code ({t['provider'] or 'sin proveedor'}) en {t['project']}" + (f": {t['title']}" if t["title"] else "")

@@ -158,3 +158,13 @@ class TestEvent(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPlainText(unittest.TestCase):
+    def test_html_and_quoted_history(self):
+        from lib import common
+        html = ('<html><style>p{color:red}</style><body><p>Hola&nbsp;Juan,<br>ya est&aacute; cargado.</p>'
+                '<div>De: Pedro &lt;p@x.com&gt;<br>Enviado: lunes</div></body></html>')
+        self.assertEqual(common.plain_text(html), "Hola Juan, ya está cargado. De: Pedro <p@x.com> Enviado: lunes")
+        self.assertEqual(common.plain_text(html, drop_quoted=True), "Hola Juan, ya está cargado.")
+        self.assertEqual(common.plain_text("x" * 20, 10), "xxxxxxxxx…")

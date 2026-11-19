@@ -15,6 +15,8 @@ Uso:
   plan.py [--date ...] edit "OP" ["OP" ...]
   plan.py [--date ...] expand N|ID
   plan.py [--date ...] ops
+  plan.py [--date ...] load
+  plan.py [--date ...] close --outcome load|cancel
 
 Formato de plan.json (horas locales "HH:MM"; los `id` los asigna el script):
   {
@@ -30,6 +32,7 @@ Formato de plan.json (horas locales "HH:MM"; los `id` los asigna el script):
     "new_issues": [{"ref": "NEW-1", "project", "type", "summary", "parent"?, "similar": [keys],
                     "fields": [{"key", "name", "value", "options"?: [...], "required"?: bool}]}],
     "group_comments": {"b2+b5": {"breve", "normal", "detallado"}},
+    "texts"?: {"b3": "texto", "b2+b5": "texto"},  # comentarios editados a mano en la página (los escribe el script)
     "confirmed_rows"?: ["b2+b5", ...],  # filas confirmadas en la página (key de fila de variante)
     "variant_overrides"?: {"group": [{"start", "end", "ids": [...]} | {"start", "end", "lunch": true}
                                      | {"start", "end", "gap": "g1"}]}
@@ -54,7 +57,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from collectors import jira  # noqa: E402
-from lib import common, page, status_hints, variants  # noqa: E402
+from lib import common, jira_load, metrics, page, status_hints, variants  # noqa: E402
 
 ACTIONS = ("new", "existing", "adjust")
 CONFIDENCES = ("alta", "media", "baja")
@@ -139,7 +142,9 @@ def build_model(plan: dict, digest: dict, cfg: dict) -> Model:
     tz = common.get_tz(cfg)
     day = date.fromisoformat(plan.get("date") or digest["date"])
     rng = digest.get("range") or {}
-    r_start = common.parse_iso(rng["start"]).astimezone(tz) if rng.get("start") else None
+    # En una tanda siguiente del mismo día, el rango empieza donde terminó la última cargada.
+    first = rng.get("from") or rng.get("start")
+    r_start = common.parse_iso(first).astimezone(tz) if first else None
     r_end = common.parse_iso(rng["end"]).astimezone(tz) if rng.get("end") else None
     # El plan puede corregir el rango (p.ej. sin checkin, el usuario dicta la entrada).
     if plan.get("start"):
@@ -280,6 +285,9 @@ def validate(model: Model) -> Model:
                 E.append(f"{tag}: {issue} está en estado excluido ({cand.get('status')})")
 
     for wid, w in existing.items():
+        w_end = common.parse_iso(w["started"]) + timedelta(minutes=int(w["minutes"]))
+        if seen_wl.get(wid, 0) == 0 and model.range_start and w_end <= model.range_start:
+            continue  # worklog de una tanda anterior: no va en el plan
         if seen_wl.get(wid, 0) == 0:
             E.append(f"falta el worklog existente {wid} ({w.get('issue')}): debe figurar como 'existing' o 'adjust'")
         elif seen_wl[wid] > 1:
@@ -321,10 +329,61 @@ def load_raw_events(raw: Path) -> dict[str, dict]:
     events: dict[str, dict] = {}
     if raw.is_dir():
         for f in sorted(raw.glob("*.json")):
-            data = common.read_json(f, {}) or {}
+            try:
+                data = common.read_json(f, {}) or {}
+            except ValueError:
+                continue  # JSON roto de un subagente: lo avisa mcp_coverage_warnings
+            if not isinstance(data, dict):
+                continue
             for ev in data.get("events", []):
                 events[ev["id"]] = ev
     return events
+
+
+def _hm_iso(value, tz) -> str:
+    try:
+        return common.fmt_hm(common.parse_iso(value).astimezone(tz))
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def mcp_coverage_warnings(raw: Path, tz) -> list[str]:
+    """Avisos de cobertura de `raw/mcp_<fuente>.json` (los escriben los subagentes de la fase 1).
+
+    `coverage` tiene una entrada por fuente MCP consultada:
+    `{"status": "complete|partial|failed", "incomplete": [{"start", "end", "reason"}], "error", "note"}`.
+    Un mcp.json sin `coverage` es de antes de este control: no se sabe si quedó completo."""
+    out, cov = [], {}
+    files = sorted(raw.glob("mcp*.json")) if raw.is_dir() else []
+    for path in files:  # mcp.json (formato viejo, un solo subagente) o mcp_<fuente>.json
+        try:
+            data = common.read_json(path, None)
+        except ValueError:
+            out.append(f"{path.name} no es JSON válido: sus eventos no se pudieron leer.")
+            continue
+        if not isinstance(data, dict):
+            continue
+        if not isinstance(data.get("coverage"), dict):
+            out.append(f"Fuentes MCP sin datos de cobertura ({path.name} no trae `coverage`): "
+                       "pueden faltar mensajes, reuniones o documentos.")
+            continue
+        cov.update(data["coverage"])
+    for src in sorted(cov):
+        c = cov[src] if isinstance(cov[src], dict) else {}
+        status = c.get("status")
+        if status == "complete":
+            if c.get("note"):
+                out.append(f"Cobertura de {src}: {c['note']}")
+            continue
+        if status == "failed":
+            out.append(f"Cobertura de {src}: no se pudo consultar ({c.get('error') or 'sin detalle'}).")
+            continue
+        parts = [f"{_hm_iso(w.get('start'), tz)}–{_hm_iso(w.get('end'), tz)}"
+                 + (f" ({w['reason']})" if w.get("reason") else "")
+                 for w in c.get("incomplete") or [] if isinstance(w, dict)]
+        detail = ", ".join(parts) if parts else (c.get("error") or "sin detalle de ventanas")
+        out.append(f"Cobertura parcial de {src}: pueden faltar eventos en {detail}.")
+    return out
 
 
 def activity(events: dict[str, dict], tz) -> list[tuple[datetime, datetime]]:
@@ -448,7 +507,10 @@ def missing_comments(model: Model, vs: dict[str, dict]) -> list[dict]:
     return out
 
 
-def ops(model: Model, vs: dict[str, dict]) -> list[dict]:
+def ops(model: Model, vs: dict[str, dict], allow_pending_creates: bool = False) -> list[dict]:
+    """Operaciones de worklog de la variante elegida. Con `allow_pending_creates` (el chequeo de
+    `review` antes de cargar) se aceptan filas de incidencias nuevas que el usuario decidió crear:
+    se crean primero y después se corre `ops` con las keys reales."""
     if model.errors:
         raise ValueError("el plan tiene errores de validación; corregirlos antes de cargar")
     name = variant_name(modes(model.plan, model.cfg))
@@ -467,17 +529,20 @@ def ops(model: Model, vs: dict[str, dict]) -> list[dict]:
     if open_gaps:
         raise ValueError("hay huecos sin resolver (asignarlos o marcarlos 'unworked'): " + ", ".join(open_gaps))
     new_refs = {ni.get("ref") for ni in model.plan.get("new_issues", [])}
+    to_create = {ni.get("ref") for ni in model.plan.get("new_issues", []) if ni.get("decision") == "create"}
     result = []
     for r in var["rows"]:
         if r["kind"] != "block" or r.get("action") == "existing":
             continue
-        if r["issue"] in new_refs:
+        if r["issue"] in new_refs and not (allow_pending_creates and r["issue"] in to_create):
             raise ValueError(f"{r['key']} usa {r['issue']}: crear la incidencia y reemplazar la referencia con "
                              f"`edit \"replace {r['issue']} KEY\"`")
         minutes = int((r["end"] - r["start"]).total_seconds() // 60)
         if r.get("fixed") and r.get("action") == "adjust":
             b = by_id[r["ids"][0]].data
             comment = b.get("comment") or ""
+        elif r["key"] in (model.plan.get("texts") or {}):
+            comment = model.plan["texts"][r["key"]]
         else:
             level = level_of(model, r["key"])
             comments = row_comments(model, r)
@@ -491,6 +556,7 @@ def ops(model: Model, vs: dict[str, dict]) -> list[dict]:
             "issueIdOrKey": r["issue"],
             "started": common.jira_started(r["start"]),
             "timeSpent": common.jira_time_spent(minutes),
+            "minutes": minutes,
             "commentBody": comment.strip(),
         }
         if r.get("action") == "adjust":
@@ -519,11 +585,20 @@ en el orden actual; todas las operaciones de una llamada usan la numeración pre
   unworked N                  convierte el bloque o hueco en 'no trabajado' (confirmado)
   assign N KEY                convierte un hueco en un bloque nuevo de KEY (pendiente)
   replace REF KEY             reemplaza una incidencia nueva (NEW-1) por su key real en todo el plan
+  draft REF campo=valor [...] edita el borrador REF (NEW-1): summary, parent, type, project,
+                              similar (keys con comas) o field.KEY (ej. field.reporter=..., field.description=...)
+
+Cada operación es un argumento aparte y se parte con shlex: si un valor tiene espacios,
+entrecomillá el par dentro de la operación, por ejemplo
+  plan.py edit "set b3 'warn=revisar el horario'" "draft NEW-1 'summary=Alta de usuario en ERPNext'"
 
 Los comentarios de los bloques se cargan con `plan.py comments`, no con `edit`.
 
 Toda fila cuyo horario cambia queda sin confirmar. Un worklog existente que se mueve pasa a
 'adjust' (y vuelve a 'existing' si recupera su horario original)."""
+
+FIELD_NAMES = {"reporter": "Informador", "description": "Descripción", "components": "Componentes",
+               "labels": "Etiquetas", "priority": "Prioridad", "duedate": "Fecha de vencimiento"}
 
 EDITABLE = {"issue", "confidence", "summary", "warn", "note", "fixed"}
 LIST_FIELDS = {"sources", "evidence"}
@@ -832,6 +907,34 @@ class Editor:
         if ref in fu:
             fu[key] = fu.pop(ref)
 
+    def op_draft(self, ref: str, *pairs: str) -> None:
+        """Edita un borrador NEW-n: summary, parent, type, project, similar (lista con comas) o
+        field.KEY (campo de Jira; si no existe se agrega)."""
+        ni = self.m.new_issue(ref)
+        if ni is None:
+            raise EditError(f"{ref} no está entre las incidencias nuevas")
+        if not pairs:
+            raise EditError("falta campo=valor")
+        for pair in pairs:
+            if "=" not in pair:
+                raise EditError(f"se espera campo=valor, no {pair!r} (entrecomillá el par si el valor tiene espacios)")
+            k, v = pair.split("=", 1)
+            if k in ("summary", "parent", "type", "project"):
+                if k in NEW_ISSUE_KEYS and not v.strip():
+                    raise EditError(f"{k} no puede quedar vacío")
+                ni[k] = v.strip() or None
+            elif k == "similar":
+                ni["similar"] = [x.strip().upper() for x in v.split(",") if x.strip()]
+            elif k.startswith("field."):
+                key = k[6:]
+                f = next((f for f in ni.setdefault("fields", []) if f.get("key") == key), None)
+                if f is None:
+                    ni["fields"].append({"key": key, "name": FIELD_NAMES.get(key, key), "value": v})
+                else:
+                    f["value"] = v
+            else:
+                raise EditError(f"campo de borrador no editable: {k} (summary, parent, type, project, similar, field.KEY)")
+
     def apply(self, op: str) -> None:
         parts = shlex.split(op)
         if not parts:
@@ -1025,16 +1128,26 @@ def missing_report(model: Model, vs: dict[str, dict]) -> list[str]:
     return out
 
 
+def clean_text(text: str) -> str:
+    """Normaliza espacios sin perder los saltos de línea (las viñetas del nivel detallado)."""
+    lines = (" ".join(line.split()) for line in str(text).splitlines())
+    return "\n".join(line for line in lines if line)
+
+
 def set_comments(plan: dict, data: dict) -> list[str]:
-    """Carga los tres niveles de comentario por key de fila (b3 o b2+b5). Devuelve errores."""
+    """Carga los tres niveles de comentario por key de fila (b3 o b2+b5). Devuelve errores.
+    Si el usuario había editado a mano el texto de esa fila, se descarta: el agente lo reescribe
+    porque el usuario lo pidió."""
     errors = []
     ids = {b.get("id"): b for b in plan.get("blocks", [])}
     for key, levels in data.items():
         if not isinstance(levels, dict) or not all(isinstance(levels.get(lv), str) and levels[lv].strip() for lv in LEVELS):
             errors.append(f"{key}: hacen falta los tres niveles ({', '.join(LEVELS)}) con texto")
             continue
-        clean = {lv: " ".join(levels[lv].split()) for lv in LEVELS}
+        clean = {lv: clean_text(levels[lv]) for lv in LEVELS}
         parts = key.split("+")
+        for k in {key, variants.row_key(parts)}:
+            (plan.get("texts") or {}).pop(k, None)
         if any(p not in ids for p in parts):
             errors.append(f"{key}: no existe el bloque {next(p for p in parts if p not in ids)}")
         elif len(parts) == 1:
@@ -1091,18 +1204,23 @@ def apply_review(plan: dict, digest: dict, cfg: dict, raw: Path, st: dict) -> tu
     work["confirmed_rows"] = sorted(rows_ok)
     levels = {k: v for k, v in (st.get("levels") or {}).items() if v in common.COMMENT_LEVELS}
     work.setdefault("levels", {}).update(levels)
+    if isinstance(st.get("texts"), dict):
+        work["texts"] = {k: v.strip() for k, v in st["texts"].items() if isinstance(v, str)}
     if isinstance(st.get("modes"), dict):
         work["modes"] = {"group": bool(st["modes"].get("group")), "lunch": bool(st["modes"].get("lunch"))}
     for ni in work.get("new_issues", []):
         d = (st.get("new_issues") or {}).get(ni.get("ref")) or {}
         if d.get("decision"):
             ni["decision"] = d["decision"]
+        if isinstance(d.get("summary"), str) and d["summary"].strip():
+            ni["summary"] = " ".join(d["summary"].split())
         for f in ni.get("fields", []):
             if f.get("key") in (d.get("fields") or {}):
                 f["value"] = d["fields"][f["key"]]
     if isinstance(st.get("followup"), dict):
         work["followup"] = {k: v for k, v in st["followup"].items() if isinstance(v, dict)}
     work["round"] = rnd + 1
+    work.pop("load_approved", None)
 
     if requested:
         report.append("Incidencias nuevas pedidas por el usuario (armá cada borrador como en la fase 2 "
@@ -1205,6 +1323,156 @@ def followup_round(plan: dict, meta: dict, suggest: list[str]) -> list[str]:
     return out
 
 
+# --------------------------------------------------------------------------- tandas
+
+RUN_FILES = ("plan.json", "page_state.json", "review.html", "asks", "jira_meta.json", "status_signals.json",
+             jira_load.LOG, metrics.FILE, metrics.FIRST_PLAN)
+
+
+def close_run(sdir: Path, plan: dict, digest: dict, cfg: dict, raw: Path, outcome: str,
+              now: datetime | None = None) -> dict:
+    """Cierra la tanda actual: la anota en runs.json y archiva sus archivos en runs/<n>/.
+    Con `load`, la tanda siguiente del día arranca en el fin de esta."""
+    model = build_model(copy.deepcopy(plan), digest, cfg)
+    lunch = False
+    if outcome == "load" and modes(plan, cfg)["lunch"]:
+        try:
+            lunch = (compute_variants(model, raw)["lunch"]["lunch"] or {}).get("mode", "none") != "none"
+        except (KeyError, ValueError):
+            lunch = False
+    data = common.read_json(sdir / common.RUNS, {}) or {}
+    runs = data.setdefault("runs", [])
+    rec = {
+        "n": len(runs) + 1,
+        "from": model.range_start.isoformat() if model.range_start else None,
+        "until": model.range_end.isoformat() if model.range_end else None,
+        "outcome": outcome,
+        "lunch": lunch,
+        "created": plan.get("created") or [],
+        "closed_at": (now or datetime.now().astimezone()).isoformat(timespec="seconds"),
+    }
+    try:
+        st = common.read_json(sdir / "page_state.json", {}) or {}
+    except ValueError:
+        st = {}
+    try:
+        summary = metrics.close_summary(sdir, plan, rec, st)
+        metrics.update(sdir, "summary", summary)
+        metrics.append_global(summary)
+    except Exception as e:  # noqa: BLE001 — las métricas no frenan el cierre
+        metrics.error(sdir, "close", f"no se pudo armar el resumen de métricas: {e}")
+    dest = sdir / "runs" / str(rec["n"])
+    dest.mkdir(parents=True, exist_ok=True)
+    for name in RUN_FILES:
+        if (sdir / name).exists():
+            (sdir / name).replace(dest / name)
+    runs.append(rec)
+    common.write_json(sdir / common.RUNS, data)
+    return rec
+
+
+# --------------------------------------------------------------------------- carga
+
+
+def cmd_load(plan: dict, plan_path: Path, digest: dict, cfg: dict, raw: Path, day: date,
+             writer: "jira_load.Writer | None" = None, env: dict | None = None) -> int:
+    """Carga en Jira lo que el usuario aprobó: crea las incidencias, carga los worklogs y aplica
+    el seguimiento. Para en el primer error; al volver a correr, retoma desde ahí."""
+    t0 = datetime.now()
+    code = _cmd_load(plan, plan_path, digest, cfg, raw, day, writer, env)
+    steps = (common.read_json(plan_path.parent / jira_load.LOG, {}) or {}).get("steps", {})
+    prev = metrics.load(plan_path.parent).get("load") or {}
+    kinds = {}
+    for sid, v in steps.items():
+        k = kinds.setdefault(sid.split(":", 1)[0], {"ok": 0, "error": 0})
+        k["ok" if v.get("status") == "ok" else "error"] += 1
+    errors = [{"step": sid.split(":", 1)[0], "error": (v.get("error") or "")[:160]}
+              for sid, v in steps.items() if v.get("status") == "error"]
+    metrics.update(plan_path.parent, "load", {
+        "attempts": prev.get("attempts", 0) + 1,
+        "seconds": round(prev.get("seconds", 0) + (datetime.now() - t0).total_seconds(), 1),
+        "completed": code == 0, "steps": kinds, "errors": errors})
+    return code
+
+
+def _cmd_load(plan: dict, plan_path: Path, digest: dict, cfg: dict, raw: Path, day: date,
+              writer: "jira_load.Writer | None" = None, env: dict | None = None) -> int:
+    if plan.get("load_approved") != plan.get("round"):
+        print("✗ no hay una carga aprobada en esta ronda: el usuario tiene que apretar «Cargar en Jira» "
+              "(o «Aplicar» en el seguimiento) y `plan.py review` tiene que decir «Listo para cargar»")
+        return 1
+    env = env if env is not None else common.load_env()
+    if writer is None:
+        token = env.get("JIRA_API_TOKEN")
+        if not token:
+            print("✗ falta JIRA_API_TOKEN en .env: la carga la tiene que hacer el agente con las herramientas de Jira")
+            return 1
+        writer = jira_load.Writer(cfg["jira"]["site"], cfg["jira"]["email"], token)
+    account = cfg["jira"].get("account_id") or ""
+    log_path = plan_path.parent / jira_load.LOG
+    followup_stage = plan.get("stage") == "followup"
+    report: list[str] = []
+
+    def created(ref: str, key: str) -> None:
+        nonlocal plan
+        plan, _, _ = edit(plan, digest, cfg, [f"replace {ref} {key}"])
+        common.write_json(plan_path, plan)
+
+    # 1. Incidencias nuevas (los worklogs necesitan sus keys).
+    creates = [] if followup_stage else jira_load.plan_steps({"new_issues": plan.get("new_issues", [])}, [])
+    if creates:
+        lines, ok = jira_load.run(creates, writer, plan, account, log_path, created)
+        report += lines
+        if not ok:
+            print("\n".join(["Carga detenida:", *report, _resume_hint()]))
+            return 1
+    # 2. Worklogs de la variante elegida y 3. seguimiento.
+    model = validate(build_model(plan, digest, cfg))
+    try:
+        wl_ops = [] if followup_stage else ops(model, compute_variants(model, raw))
+    except ValueError as e:
+        print("\n".join(["Carga detenida:", *report, f"  ✗ {e}", _resume_hint()]))
+        return 1
+    steps = jira_load.plan_steps(plan, wl_ops, followup_only=followup_stage)
+    steps = [s for s in steps if s["kind"] != "create"]
+    lines, ok = jira_load.run(steps, writer, plan, account, log_path)
+    report += lines
+    if not ok:
+        print("\n".join(["Carga detenida:", *report, _resume_hint()]))
+        return 1
+    print("\n".join(["Carga completa:", *report]))
+    if plan.get("created") and not followup_stage:
+        print(f"Creadas en esta carga: {', '.join(plan['created'])} → seguir con `plan.py build --followup`.")
+    if not followup_stage:
+        print(verify_worklogs(cfg, env, day, log_path, writer))
+    return 0
+
+
+def _resume_hint() -> str:
+    return ("Lo hecho quedó anotado en load_log.json. Corregí la causa (campo, permiso, estado) y volvé a correr "
+            "`plan.py load`: retoma desde el paso que falló. Si la corrección requiere una decisión del usuario, "
+            "preguntásela en el chat antes.")
+
+
+def verify_worklogs(cfg: dict, env: dict, day: date, log_path: Path, writer) -> str:
+    """Compara los worklogs cargados con los que devuelve Jira para el día."""
+    log = (common.read_json(log_path, {}) or {}).get("steps", {})
+    loaded = {(v.get("result") or {}).get("worklog_id") for k, v in log.items()
+              if k.startswith("worklog:") and v.get("status") == "ok"}
+    loaded.discard("")
+    loaded.discard(None)
+    try:
+        client = jira.JiraClient(cfg["jira"]["site"], cfg["jira"]["email"], env.get("JIRA_API_TOKEN", ""),
+                                 http=writer.http)
+        found = {str(w["id"]) for w in jira.fetch_worklogs(client, day, common.get_tz(cfg), cfg["jira"].get("account_id"))}
+    except Exception as e:  # noqa: BLE001 — la verificación no deshace la carga
+        return f"! no se pudo verificar en Jira: {str(e)[:200]} (correr `collect.py --refresh jira`)"
+    missing = sorted(loaded - found)
+    if missing:
+        return f"! Jira no devuelve estos worklogs recién cargados: {', '.join(missing)}"
+    return f"Verificado: los {len(loaded)} worklogs cargados aparecen en Jira."
+
+
 # --------------------------------------------------------------------------- CLI
 
 
@@ -1232,6 +1500,10 @@ def main(argv: list[str] | None = None) -> int:
     p_exp = sub.add_parser("expand")
     p_exp.add_argument("ref", help="id (b3, g1) o número de fila")
     sub.add_parser("ops")
+    sub.add_parser("load", help="carga en Jira lo aprobado en la página; retoma desde el último paso hecho")
+    p_close = sub.add_parser("close", help="cierra la tanda: la anota en runs.json y archiva sus archivos")
+    p_close.add_argument("--outcome", required=True, choices=("load", "cancel"),
+                         help="load si se cargó en Jira (la próxima tanda arranca en el corte de esta), cancel si no")
     p_edit = sub.add_parser("edit", description=EDIT_HELP, formatter_class=argparse.RawDescriptionHelpFormatter)
     p_edit.add_argument("operations", nargs="+", help="una operación por argumento (ver --help)")
     args = ap.parse_args(argv)
@@ -1257,6 +1529,18 @@ def main(argv: list[str] | None = None) -> int:
         common.write_json(plan_path, plan)
     model = validate(build_model(plan, digest, cfg))
 
+    if args.cmd == "load":
+        return cmd_load(plan, plan_path, digest, cfg, raw, day)
+    if args.cmd == "close":
+        if (sdir / "server.json").exists():
+            print("✗ el servidor de la página sigue anotado: detenelo con `server.py stop` antes de cerrar la tanda")
+            return 1
+        rec = close_run(sdir, plan, digest, cfg, raw, args.outcome)
+        tz = common.get_tz(cfg)
+        span = "–".join(common.fmt_hm(common.parse_iso(x).astimezone(tz)) if x else "?" for x in (rec["from"], rec["until"]))
+        print(f"Tanda {rec['n']} cerrada ({args.outcome}, {span}{', con almuerzo' if rec['lunch'] else ''}): "
+              f"archivada en {sdir / 'runs' / str(rec['n'])}")
+        return 0
     if args.cmd == "validate":
         for e in model.errors:
             print(f"✗ {e}")
@@ -1323,6 +1607,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"✗ el estado guardado {what}: el usuario todavía no envió esta ronda (no se aplicó nada)")
             return 1
         followup_stage = plan.get("stage") == "followup"
+        metrics.append(plan_path.parent, "rounds", {**metrics.review_metrics(plan, st), "stage": plan.get("stage")})
         new_plan, report = apply_review(plan, digest, cfg, raw, st)
         common.write_json(plan_path, new_plan)
         model = validate(build_model(new_plan, digest, cfg))
@@ -1331,7 +1616,9 @@ def main(argv: list[str] | None = None) -> int:
         if followup_stage:
             # Después de cargar, el digest ya trae los worklogs nuevos: el plan no se vuelve a validar.
             if st.get("action") in ("apply", "apply_more"):
-                out.append("Pendiente en Jira, en orden:")
+                new_plan["load_approved"] = new_plan["round"]
+                common.write_json(plan_path, new_plan)
+                out.append("Pendiente en Jira, en orden (lo hace `plan.py load`):")
                 out += load_checklist(model, vs, followup_only=True) or ["  (nada: no se eligió ninguna transición ni comentario)"]
             print("\n".join(out))
             return 0
@@ -1339,9 +1626,12 @@ def main(argv: list[str] | None = None) -> int:
         out += missing_report(model, vs)
         if st.get("action") == "load":
             try:
-                n_ops = len(ops(model, vs))
-                out.append(f"Listo para cargar: {n_ops} operaciones de worklog. Pendiente en Jira, en orden:")
+                n_ops = len(ops(model, vs, allow_pending_creates=True))
+                out.append(f"Listo para cargar: {n_ops} operaciones de worklog. Pendiente en Jira, en orden "
+                           f"(lo hace `plan.py load`):")
                 out += load_checklist(model, vs) or ["  (nada más que los worklogs)"]
+                new_plan["load_approved"] = new_plan["round"]
+                common.write_json(plan_path, new_plan)
             except ValueError as e:
                 out.append(f"✗ no se puede cargar todavía: {e}")
         print("\n".join(out))
@@ -1385,10 +1675,15 @@ def main(argv: list[str] | None = None) -> int:
             print("\n".join(f"✗ {e}" for e in model.errors) + "\n(no se generó la página)")
             return 1
         vs = compute_variants(model, raw)
+        if "modes" not in plan and modes(plan, cfg)["lunch"] and variants.lunch_skip_reason(model):
+            plan["modes"] = {"group": modes(plan, cfg)["group"], "lunch": False}
+            common.write_json(plan_path, plan)
         v_err = [f"✗ {name}: {e}" for name, v in vs.items() for e in v["errors"]]
         missing = missing_report(model, vs)
         if v_err or missing:
             print("\n".join(v_err + missing) + "\n(no se generó la página)")
+            b = (metrics.load(plan_path.parent).get("build") or {})
+            metrics.update(plan_path.parent, "build", {**b, "failed": b.get("failed", 0) + 1})
             return 1
         meta = {} if args.no_jira else fetch_meta(cfg, common.load_env(), meta_keys(model),
                                                    plan_path.parent / "jira_meta.json", args.refresh_jira,
@@ -1397,10 +1692,18 @@ def main(argv: list[str] | None = None) -> int:
         status_report = [] if args.no_jira else status_suggestions(
             model, meta, events, plan_path.parent / "status_signals.json", args.refresh_jira, args.suggest)
         current = variant_name(modes(plan, cfg))
-        data = page.build_data(model, vs, meta, events, current, model.warnings,
+        coverage = mcp_coverage_warnings(raw, common.get_tz(cfg))
+        data = page.build_data(model, vs, meta, events, current, coverage + model.warnings,
                                confirmed_keys(model, vs))
         out_path = plan_path.parent / "review.html"
         page.write_page(out_path, data)
+        first = plan_path.parent / metrics.FIRST_PLAN
+        if not first.exists():  # la primera propuesta, para compararla con lo que se carga
+            common.write_json(first, plan)
+        b = (metrics.load(plan_path.parent).get("build") or {})
+        metrics.update(plan_path.parent, "build", {"count": b.get("count", 0) + 1,
+                                                    "first_at": b.get("first_at") or metrics.now_iso(),
+                                                    "failed": b.get("failed", 0)})
         print(f"review.html: {out_path} (ronda {plan['round']}, variante inicial {current})")
         for name, v in vs.items():
             tot = " · ".join(f"{k} {common.fmt_duration(m)}" for k, m in sorted(v["totals"].items(), key=lambda kv: -kv[1]))
@@ -1415,7 +1718,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {name:<12} {n_blocks} bloques · {tot}{extra}{' · override' if v['override'] else ''}")
             for w in v["warnings"]:
                 print(f"    ! {w}")
-        for w in model.warnings:
+        for w in coverage + model.warnings:
             print(f"! {w}")
         for k, m in meta.items():
             if m.get("error"):

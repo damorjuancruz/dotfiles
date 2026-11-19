@@ -89,6 +89,12 @@
       "enabled": true,
       "history_path": "~/.config/google-chrome/Default/History",
       "session_gap_minutes": 10,
+      "ignore_domains": [
+        "teams.cloud.microsoft",
+        "teams.microsoft.com"
+      ],
+      "restore_min_domains": 4,
+      "restore_window_seconds": 30,
       "deny_domains": [
         "youtube.com",
         "facebook.com",
@@ -101,7 +107,14 @@
         "mail.google.com"
       ]
     },
+    "review_page": {
+      "enabled": true,
+      "idle_gap_minutes": 5
+    },
     "outlook": {
+      "enabled": true
+    },
+    "mail": {
       "enabled": true
     },
     "teams": {

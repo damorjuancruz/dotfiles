@@ -531,11 +531,31 @@ def rows_from_override(spec: list[dict], model) -> list[dict]:
 # --------------------------------------------------------------------------- entrada
 
 
+def lunch_skip_reason(model) -> str | None:
+    """Motivo para no ofrecer el almuerzo en esta tanda: ya se descontó en una tanda anterior del
+    día, o la ventana del almuerzo queda entera fuera del rango de esta tanda."""
+    rng = (model.digest or {}).get("range") or {}
+    if rng.get("lunch_done_in"):
+        return f"el almuerzo ya se descontó en la tanda {rng['lunch_done_in']}"
+    if model.range_start is None or model.range_end is None:
+        return None
+    rv, tz = model.cfg["review"], common.get_tz(model.cfg)
+    ws, we = (_hm_on(model.day, v, tz) for v in rv["lunch_window"])
+    if model.range_end <= ws or model.range_start >= we:
+        return (f"la ventana del almuerzo ({rv['lunch_window'][0]}–{rv['lunch_window'][1]}) queda fuera de esta tanda "
+                f"({common.fmt_hm(model.range_start)}–{common.fmt_hm(model.range_end)})")
+    return None
+
+
 def compute(model, events: list[tuple[datetime, datetime]]) -> dict[str, dict]:
     """Calcula las cuatro variantes. Cada una: rows, totals, lunch, errors, warnings, override."""
     cfg, tz = model.cfg, common.get_tz(model.cfg)
     base = base_layout(model)
-    lunch_items, lunch_info = apply_lunch(base, events, cfg, model.day, tz)
+    skip = lunch_skip_reason(model)
+    if skip:
+        lunch_items, lunch_info = base, {"mode": "none", "reason": skip, "discounts": {}}
+    else:
+        lunch_items, lunch_info = apply_lunch(base, events, cfg, model.day, tz)
     has_lunch = lunch_info["mode"] != "none"
     layouts = {
         "base": base,

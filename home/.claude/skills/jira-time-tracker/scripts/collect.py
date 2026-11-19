@@ -4,8 +4,8 @@
   - Cada colector escribe <state>/<fecha>/raw/<fuente>.json (con sus eventos completos).
   - Las keys de Jira mencionadas por las otras fuentes se agregan como candidatas en una
     segunda pasada.
-  - Las sesiones de agente (cc, t3, también las remotas) se cruzan entre sí para el trabajo en
-    paralelo (ver mark_parallel).
+  - Las sesiones de agente (cc, t3, también las remotas) y el uso de la página de revisión del
+    skill (jtt) se cruzan entre sí para el trabajo en paralelo (ver mark_parallel).
   - <state>/<fecha>/digest.json es lo que usa plan.py.
   - Por stdout sale el digest en texto compacto: es lo único que lee el agente.
 
@@ -18,13 +18,14 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from collectors import chrome, claude_code, erpnext, git_local, github, jira, remote, t3_code  # noqa: E402
-from lib import common  # noqa: E402
+from collectors import chrome, claude_code, erpnext, git_local, github, jira, remote, review_page, t3_code  # noqa: E402
+from lib import common, metrics  # noqa: E402
 
 LOCAL_COLLECTORS = {
     "erpnext": erpnext.collect,
@@ -34,10 +35,11 @@ LOCAL_COLLECTORS = {
     "t3_code": t3_code.collect,
     "remote": remote.collect,
     "chrome": chrome.collect,
+    "review_page": review_page.collect,
 }
-MCP_SOURCES = ("outlook", "teams", "sharepoint", "google_drive")
+MCP_SOURCES = ("outlook", "mail", "teams", "sharepoint", "google_drive")
 DETAIL_CHARS = 140
-AGENT_SOURCES = ("cc", "t3")
+AGENT_SOURCES = ("cc", "t3", "jtt")
 
 
 # --------------------------------------------------------------------------- keys
@@ -64,7 +66,8 @@ def mark_parallel(timeline: list[dict], interaction_minutes: int) -> None:
     """Cruza las sesiones de agente que se pisan en el tiempo.
 
     Interacción: los `interaction_minutes` previos a cada prompt del usuario (leer la respuesta
-    y escribir). El resto del tramo de la sesión es trabajo autónomo del agente.
+    y escribir), más los tramos de `hints.activity_spans` (uso real de la página de revisión,
+    fuente jtt). El resto del tramo de la sesión es trabajo autónomo del agente.
 
     Un trabajo autónomo cuenta para su incidencia salvo cuando, en ese mismo horario, el usuario
     interactúa con otra sesión: ese tiempo queda "tapado" y es de la sesión con interacción.
@@ -81,7 +84,8 @@ def mark_parallel(timeline: list[dict], interaction_minutes: int) -> None:
             continue
         h = ev.setdefault("hints", {})
         span = [(common.parse_iso(ev["start"]), common.parse_iso(ev["end"]))]
-        inter = common.merge_spans([(t - win, t) for t in map(common.parse_iso, h.get("prompt_times", []))])
+        inter = common.merge_spans([(t - win, t) for t in map(common.parse_iso, h.get("prompt_times", []))]
+                                   + [(common.parse_iso(s), common.parse_iso(e)) for s, e in h.get("activity_spans", [])])
         agents.append((ev, span, inter))
     for ev, span, inter in agents:
         auto = common.subtract_spans(span, inter)
@@ -106,6 +110,21 @@ def mark_parallel(timeline: list[dict], interaction_minutes: int) -> None:
         h["parallel_interaction"] = parallel
 
 
+def link_review_sessions(timeline: list[dict]) -> None:
+    """Une cada tramo de uso de la página (jtt) con las sesiones del agente que corrían el skill:
+    misma sesión de Claude Code o mismo thread de T3. Lo anota en `hints.agent_events`."""
+    for ev in timeline:
+        if ev.get("source") != "jtt":
+            continue
+        h = ev.setdefault("hints", {})
+        ids = [o["id"] for o in timeline if o.get("source") in ("cc", "t3") and (
+            (h.get("session") and (o.get("hints") or {}).get("session") == h["session"])
+            or (h.get("t3_thread") and h["t3_thread"] in ((o.get("hints") or {}).get("t3_thread"),
+                                                          (o.get("hints") or {}).get("thread"))))]
+        if ids:
+            h["agent_events"] = ids
+
+
 def build_digest(day: date, cfg: dict, results: dict[str, dict], now: datetime) -> dict:
     tz = common.get_tz(cfg)
     erp = results.get("erpnext") or {}
@@ -114,14 +133,27 @@ def build_digest(day: date, cfg: dict, results: dict[str, dict], now: datetime) 
         is_today = now.astimezone(tz).date() == day
         end = common.round_down(now.astimezone(tz), cfg["rules"]["slot_minutes"]).isoformat() if is_today else None
         rng = {"start": None, "end": end, "end_source": "now" if is_today else None, "breaks": [], "checkins": []}
+    rng = dict(rng)
+    runs = common.load_runs(day)
+    since = common.loaded_until(runs)
+    if since:
+        # Tanda siguiente del mismo día: se planifica desde el fin de la última tanda cargada.
+        rng["from"] = since
+        rng["breaks"] = [b for b in rng.get("breaks", []) if common.parse_iso(b["end"]) > common.parse_iso(since)]
+        lunch_run = next((r["n"] for r in runs if r.get("outcome") == "load" and r.get("lunch")), None)
+        if lunch_run:
+            rng["lunch_done_in"] = lunch_run
     jr = results.get("jira") or {}
-    timeline = sorted((ev for res in results.values() for ev in res.get("events", [])),
+    timeline = sorted((ev for res in results.values() for ev in res.get("events", [])
+                       if not since or common.parse_iso(ev["end"]) > common.parse_iso(since)),
                       key=lambda e: (e["start"], e["source"]))
     mark_parallel(timeline, cfg["rules"]["interaction_minutes"])
+    link_review_sessions(timeline)
     return {
         "date": day.isoformat(),
         "generated_at": now.astimezone(tz).isoformat(timespec="seconds"),
         "range": rng,
+        "runs": runs,
         "sources": {
             src: {k: v for k, v in {"status": res.get("status"), "message": res.get("message"),
                                      "messages": res.get("messages"), "events": len(res.get("events", []))}.items() if v}
@@ -155,9 +187,21 @@ def _spans_hm(spans: list, tz, limit: int = 6) -> str:
 
 
 def _parallel_tags(h: dict, tz) -> list[str]:
-    tags = [f"interacción {_spans_hm(h['interactive'], tz)}" if h.get("interactive") else "sin prompts: autónoma"]
+    """Etiquetas de reparto entre sesiones en paralelo. La interacción propia no se lista: se
+    deduce de la hora de cada prompt, que va en las líneas de abajo."""
+    if not h.get("interactive"):
+        tags = ["sin prompts: autónoma"]
+    elif not h.get("prompts"):  # interacción sin prompts listados (uso de la página, fuente jtt)
+        tags = [f"interacción {_spans_hm(h['interactive'], tz)}"]
+    else:
+        tags = []
+    by: dict[str, int] = {}
     for sh in h.get("shadowed", []):
-        tags.append(f"tapada {_hm(sh['start'], tz)}–{_hm(sh['end'], tz)} por {','.join(sh['by'])}")
+        mins = int((common.parse_iso(sh["end"]) - common.parse_iso(sh["start"])).total_seconds() // 60)
+        for i in sh["by"]:
+            by[i] = by.get(i, 0) + mins
+    if by:
+        tags.append("tapada " + ", ".join(f"{m} min por {i}" for i, m in by.items()))
     if h.get("parallel_interaction"):
         tags.append(f"interacción simultánea con {','.join(h['parallel_interaction'])}")
     return tags
@@ -171,9 +215,16 @@ def render_digest(d: dict, tz) -> str:
     line += f" · corte {_hm(rng.get('end'), tz) if rng.get('end') else 'SIN CORTE'}"
     if rng.get("end_source"):
         line += f" ({'checkout' if rng['end_source'] == 'checkout' else 'hora actual'})"
+    if rng.get("from"):
+        line += f" · TANDA {len(d.get('runs', [])) + 1}: planificar desde {_hm(rng['from'], tz)}"
     if rng.get("breaks"):
         line += " · salidas: " + ", ".join(f"{_hm(b['start'], tz)}–{_hm(b['end'], tz)}" for b in rng["breaks"])
     out.append(line)
+    for r in d.get("runs", []):
+        what = {"load": "cargada", "cancel": "cancelada"}.get(r.get("outcome"), r.get("outcome"))
+        out.append(f"Tanda {r['n']} {what}: {_hm(r.get('from'), tz) if r.get('from') else '?'}–"
+                   f"{_hm(r.get('until'), tz) if r.get('until') else '?'}"
+                   + (" · almuerzo descontado ahí" if r.get("lunch") else ""))
     if rng.get("checkins"):
         out.append("Checkins: " + ", ".join(f"{c['log_type']} {_hm(c['time'], tz)}" for c in rng["checkins"]))
 
@@ -193,11 +244,13 @@ def render_digest(d: dict, tz) -> str:
     out += ["", "Worklogs existentes del día:"]
     if not d["worklogs"]:
         out.append("  (ninguno)")
+    since = common.parse_iso(rng["from"]) if rng.get("from") else None
     for w in d["worklogs"]:
         s = common.parse_iso(w["started"]).astimezone(tz)
         e = s + timedelta(minutes=w["minutes"])
         comment = f' "{w["comment"][:80]}"' if w.get("comment") else ""
-        out.append(f"  id={w['id']} {w['issue']} {common.fmt_hm(s)}–{common.fmt_hm(e)} ({common.fmt_duration(w['minutes'])}){comment}")
+        before = " [tanda anterior: no va en el plan]" if since and e <= since else ""
+        out.append(f"  id={w['id']} {w['issue']} {common.fmt_hm(s)}–{common.fmt_hm(e)} ({common.fmt_duration(w['minutes'])}){comment}{before}")
 
     active = active_keys(d)
     misc = {k for k in [d["misc_issues"].get("parent"), *d["misc_issues"].get("subtasks", {}).values()] if k}
@@ -255,11 +308,16 @@ def render_digest(d: dict, tz) -> str:
             tags.append(f"doc={h['doctype']} {h.get('docname', '')}".strip())
         if h.get("current"):
             tags.append("SESIÓN ACTUAL")
+        if h.get("agent_events"):
+            tags.append(f"sesión del skill {','.join(h['agent_events'][:4])}")
         if ev["source"] in AGENT_SOURCES:
             tags += _parallel_tags(h, tz)
-        detail = f" | {' '.join(ev['detail'].split())[:DETAIL_CHARS]}" if ev.get("detail") else ""
+        prompts = h.get("prompts") or []
+        detail = f" | {' '.join(ev['detail'].split())[:DETAIL_CHARS]}" if ev.get("detail") and not prompts else ""
         tag_s = f" [{' · '.join(tags)}]" if tags else ""
         out.append(f"  {when:<11} {ev['source']:<6} {ev['title'][:110]}{tag_s}{detail} {{{ev['id']}}}")
+        for p in prompts:
+            out.append(f"       {_hm(p['at'], tz)}  «{p['text']}»")
     return "\n".join(out)
 
 
@@ -271,15 +329,19 @@ def run(cfg: dict, env: dict, day: date, only: list[str] | None, reuse: bool, no
     raw = common.raw_dir(day)
     enabled = [s for s in LOCAL_COLLECTORS if cfg["sources"].get(s, {}).get("enabled") and (not only or s in only)]
     results: dict[str, dict] = {}
+    durations: dict[str, float] = {}
 
     def run_one(name: str, collect) -> dict:
         path = raw / f"{name}.json"
         if reuse and name not in (refresh or []) and path.exists():
             return common.read_json(path)
+        t0 = time.monotonic()
         try:
             return collect()
         except Exception as e:  # un colector roto no debe cortar el resto
             return {"source": name, "status": "error", "message": f"{type(e).__name__}: {e}"[:300], "events": []}
+        finally:
+            durations[name] = time.monotonic() - t0
 
     for name in enabled:
         results[name] = run_one(name, lambda: LOCAL_COLLECTORS[name](cfg, env, day))
@@ -291,6 +353,7 @@ def run(cfg: dict, env: dict, day: date, only: list[str] | None, reuse: bool, no
         common.write_json(raw / f"{name}.json", res)
     digest = build_digest(day, cfg, results, now)
     common.write_json(common.state_dir(day) / "digest.json", digest)
+    digest["_durations"] = durations
     return digest
 
 
@@ -311,7 +374,18 @@ def main() -> int:
     only = [s.strip() for s in args.only.split(",")] if args.only else None
     refresh = [s.strip() for s in args.refresh.split(",")] if args.refresh else None
     digest = run(cfg, common.load_env(), day, only, args.reuse or bool(refresh), datetime.now(tz), refresh)
-    print(render_digest(digest, tz))
+    durations = digest.pop("_durations", {})
+    text = render_digest(digest, tz)
+    print(text)
+    if not refresh:  # un --refresh (por ejemplo después de cargar) no es una recolección nueva
+        metrics.update(common.state_dir(day), "collect", metrics.collect_metrics(digest, durations, len(text)))
+    sdir = common.state_dir(day, create=False)
+    if (sdir / "plan.json").exists():
+        st = common.read_json(sdir / "page_state.json", {}) or {}
+        plan = common.read_json(sdir / "plan.json", {}) or {}
+        print(f"\n! TANDA ABIERTA: hay un plan.json sin cerrar (ronda {plan.get('round', 1)}, "
+              f"etapa {plan.get('stage') or 'sin build'}, última acción de la página: {st.get('action') or 'ninguna'}"
+              + (f", creadas {', '.join(plan['created'])}" if plan.get("created") else "") + ")")
     print(f"\n(digest: {common.state_dir(day) / 'digest.json'})")
     return 0
 

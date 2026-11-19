@@ -3,7 +3,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap">
 <style>
-/* Layout: una jornada leída de arriba abajo; franja del día, tabla expandible, secciones de cierre y barra de acciones fija abajo. Paleta IEA: tinta azul, celeste de acento, cards blancas. Solo tema claro. */
+/* Layout: una jornada leída de arriba abajo; franja del día, tabla expandible, secciones de cierre y barra de acciones fija abajo.
+   Paleta por defecto IEA (tinta azul, celeste de acento, cards blancas, solo claro). Dentro de T3 Code el servidor marca
+   <html data-host="t3"> y la página toma la paleta del tema base de T3 (zinc + azul, fuente del sistema), en claro y oscuro
+   según la apariencia del navegador integrado. */
 :root {
   --bg: #F5F9FC;
   --surface: #FDFEFF;
@@ -28,8 +31,66 @@
   --font-display: "Rubik", "Segoe UI", system-ui, sans-serif;
   --font-body: "Nunito Sans", "Segoe UI", system-ui, sans-serif;
   --radius: 14px;
+  --radius-sm: 10px;
+  --bar-shadow: 0 -8px 24px rgba(18, 50, 79, 0.10);
+  --card-border: none;
   color-scheme: light;
 }
+:root[data-host="t3"] {
+  --bg: #fcfcfc;
+  --surface: #ffffff;
+  --surface-2: #f4f4f5;
+  --ink: #18181b;
+  --text: #3f3f46;
+  --muted: #71717a;
+  --line: #e4e4e7;
+  --accent: #1d4ed8;
+  --accent-2: #3b6cf0;
+  --accent-soft: #e8eefc;
+  --on-accent: #ffffff;
+  --ok: #047857;
+  --ok-soft: #d1fae5;
+  --warn: #92400e;
+  --warn-soft: #fef3c7;
+  --alarm: #b91c1c;
+  --alarm-soft: #fee2e2;
+  --shadow: none;
+  --card-border: 1px solid var(--line);
+  --bar-shadow: 0 -1px 0 var(--line);
+  --c0: #1d4ed8; --c1: #0891b2; --c2: #059669; --c3: #7c3aed; --c4: #d97706; --c5: #db2777; --c6: #64748b; --c7: #a16207;
+  --hatch: rgba(113, 113, 122, 0.35);
+  --font-display: -apple-system, BlinkMacSystemFont, "Inter Variable", "Segoe UI", system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Inter Variable", "Segoe UI", system-ui, sans-serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-host="t3"] {
+    --bg: #0a0b0d;
+    --surface: #111214;
+    --surface-2: #191a1d;
+    --ink: #f1f3f7;
+    --text: #d4d4d8;
+    --muted: #a1a1aa;
+    --line: #26272b;
+    --accent: #3b6cf0;
+    --accent-2: #6b8ff5;
+    --accent-soft: rgba(59, 108, 240, 0.18);
+    --on-accent: #ffffff;
+    --ok: #34d399;
+    --ok-soft: rgba(16, 185, 129, 0.16);
+    --warn: #fbbf24;
+    --warn-soft: rgba(245, 158, 11, 0.15);
+    --alarm: #f87171;
+    --alarm-soft: rgba(248, 113, 113, 0.15);
+    --c0: #6b8ff5; --c1: #22d3ee; --c2: #34d399; --c3: #a78bfa; --c4: #fbbf24; --c5: #f472b6; --c6: #94a3b8; --c7: #d6a85c;
+    --hatch: rgba(255, 255, 255, 0.16);
+    color-scheme: dark;
+  }
+}
+:root[data-host="t3"] body { -webkit-font-smoothing: antialiased; }
+:root[data-host="t3"] .chk[aria-pressed="true"] { color: var(--bg); }
+:root[data-host="t3"] .switch input::after { background: #ffffff; }
 * { box-sizing: border-box; }
 body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
 .app { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 120px; display: grid; gap: 20px; }
@@ -43,7 +104,7 @@ a { color: var(--accent); }
 .num { font-variant-numeric: tabular-nums; }
 .eyebrow { font-family: var(--font-display); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); font-weight: 500; }
 .muted { color: var(--muted); }
-.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; display: grid; gap: 14px; min-width: 0; }
+.card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); border: var(--card-border); padding: 20px; display: grid; gap: 14px; min-width: 0; }
 
 /* Encabezado */
 .head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
@@ -67,7 +128,7 @@ a { color: var(--accent); }
 .variant-info { font-size: 14px; color: var(--text); display: flex; flex-wrap: wrap; gap: 6px 16px; }
 .variant-info b { color: var(--ink); }
 
-.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; padding: 7px 14px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: var(--radius-sm); padding: 7px 14px; cursor: pointer; font-weight: 600; font-size: 14px; }
 .btn:hover:not(:disabled) { border-color: var(--accent-2); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
@@ -115,7 +176,7 @@ a { color: var(--accent); }
 .detail { background: var(--surface-2); border-bottom: 1px solid var(--line); padding: 4px 16px 18px 54px; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .detail > section { display: grid; gap: 10px; align-content: start; min-width: 0; }
 .detail h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface); flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; background: var(--surface); flex-wrap: wrap; }
 .seg button { border: 0; background: none; padding: 6px 12px; cursor: pointer; font-weight: 600; font-size: 13px; color: var(--text); }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 .quote { margin: 0; padding: 2px 0 2px 12px; color: var(--ink); white-space: pre-wrap; border-left: 3px solid var(--accent-2); }
@@ -126,10 +187,13 @@ a { color: var(--accent); }
 .ev-title { color: var(--ink); overflow-wrap: anywhere; }
 .ev-title .src { font-family: var(--font-display); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); margin-right: 6px; }
 .ev-detail { grid-column: 2; color: var(--text); overflow-wrap: anywhere; }
+.ev-lines { grid-column: 2; display: grid; gap: 3px; font-size: 13px; color: var(--text); border-left: 2px solid var(--line); padding-left: 8px; }
+.ev-lines span { overflow-wrap: anywhere; }
+.ev-lines b { color: var(--muted); font-weight: 600; margin-right: 4px; }
 .ev-hints { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px; }
 .ev-hints span { font-size: 11.5px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; overflow-wrap: anywhere; }
 .parts { display: grid; gap: 4px; font-size: 13.5px; }
-textarea, input[type="text"], select { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 10px; color: var(--ink); }
+textarea, input[type="text"], select { width: 100%; border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius-sm); padding: 8px 10px; color: var(--ink); }
 textarea { min-height: 64px; resize: vertical; }
 label.field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
 .radios { display: grid; gap: 6px; }
@@ -153,7 +217,7 @@ label.field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); fon
 .item-head { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: baseline; }
 
 /* Barra fija */
-.bar-fixed { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); box-shadow: 0 -8px 24px rgba(18, 50, 79, 0.10); padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); padding-inline: 16px; z-index: 5; }
+.bar-fixed { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); box-shadow: var(--bar-shadow); padding-block: 12px calc(12px + env(safe-area-inset-bottom, 0px)); padding-inline: 16px; z-index: 5; }
 .bar-inner { max-width: 1120px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
 .bar-status { font-size: 13.5px; display: grid; gap: 2px; min-width: 0; flex: 1 1 320px; }
 .bar-inner > .actions { flex: none; }
@@ -209,11 +273,11 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
     const confirmed = Object.fromEntries((D.confirmed_rows || []).map((k) => [k, true]));
     const nis = {};
     for (const n of D.new_issues) {
-      nis[n.ref] = { decision: n.decision || "", existing_key: "", note: "",
+      nis[n.ref] = { decision: n.decision || "", existing_key: "", note: "", summary: n.summary || "",
         fields: Object.fromEntries((n.fields || []).map((f) => [f.key, f.value ?? ""])) };
     }
     return { round: D.round, modes: { ...D.modes }, confirmed, absorb: {}, reassign: {}, new_requests: {}, levels: { ...D.levels },
-      notes: {}, gaps: {}, new_issues: nis, followup: clone(D.followup || {}), global_note: "", asks: {}, action: null, sent: false };
+      texts: { ...(D.texts || {}) }, notes: {}, gaps: {}, new_issues: nis, followup: clone(D.followup || {}), global_note: "", asks: {}, action: null, sent: false };
   }
   let state = initialState();
   const ui = { open: new Set(), confirmLoad: false, confirmCancel: false };
@@ -258,10 +322,12 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
     if (r.ids.length === 1) return D.blocks[r.ids[0]].comments || {};
     return D.group_comments[r.comment_key || r.key] || {};
   }
+  // Los niveles son textos sugeridos; si el usuario edita el texto, vale el suyo (state.texts).
+  const presetText = (r, lv) => (lv === "nada" ? "" : (rowComments(r)[lv] || ""));
+  const edited = (r) => Object.prototype.hasOwnProperty.call(state.texts || {}, r.key);
   function commentText(r) {
     if (isExisting(r)) return D.blocks[r.ids[0]].comment || "";
-    const lv = levelOf(r.key);
-    return lv === "nada" ? "" : (rowComments(r)[lv] || "");
+    return edited(r) ? state.texts[r.key] : presetText(r, levelOf(r.key));
   }
   function rowConfirmed(r) {
     if (r.kind === "block") return D.blocks[r.ids[0]].action === "existing" || !!state.confirmed[r.key];
@@ -316,6 +382,7 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
     for (const n of D.new_issues) {
       const s = state.new_issues[n.ref] || {};
       if (!s.decision) hard.push(`${n.ref} sin decidir`);
+      else if (s.decision === "create" && !String(s.summary ?? n.summary ?? "").trim()) hard.push(`${n.ref} sin resumen`);
       else if (s.decision !== "create") round.push(`${n.ref} no se crea`);
       if ((s.note || "").trim()) round.push("comentarios para Claude");
     }
@@ -455,10 +522,15 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
       .sort((a, b) => a[1].start.localeCompare(b[1].start));
     if (!evs.length) return `<p class="muted" style="margin:0">Sin evidencia referenciada (${esc(ids.map((i) => (D.blocks[i].sources || []).join(", ")).filter(Boolean).join(" · ") || "sin fuentes")}).</p>`;
     return `<div class="ev">${evs.map(([id, e]) => {
-      const hints = Object.entries(e.hints || {}).map(([k, val]) => `<span>${esc(k)}: ${esc(Array.isArray(val) ? val.join(", ") : typeof val === "object" ? JSON.stringify(val) : val)}</span>`).join("");
+      const HIDE = ["prompts", "prompt_times", "messages", "interactive", "shadowed", "parallel_interaction"];
+      const lines = [...(e.hints && e.hints.prompts || []).map((p) => [p.at, "", p.text]),
+        ...(e.hints && e.hints.messages || []).map((m) => [m.at, m.from || (m.dir === "out" ? "yo" : ""), m.text])];
+      const linesHtml = lines.length ? `<span class="ev-lines">${lines.map(([at, who, t]) => `<span><b class="num">${esc(at)}</b>${who ? ` ${esc(who)}:` : ""} ${esc(t)}</span>`).join("")}</span>` : "";
+      const hints = Object.entries(e.hints || {}).filter(([k]) => !HIDE.includes(k)).map(([k, val]) => `<span>${esc(k)}: ${esc(Array.isArray(val) ? val.join(", ") : typeof val === "object" ? JSON.stringify(val) : val)}</span>`).join("");
       return `<div class="ev-item"><span class="ev-when num">${e.start === e.end ? e.start : `${e.start}–${e.end}`}</span>
         <span class="ev-title"><span class="src">${esc(e.label || e.source)}</span>${esc(e.title)}</span>
-        ${e.detail ? `<span class="ev-detail">${esc(e.detail)}</span>` : ""}
+        ${e.detail && !lines.length ? `<span class="ev-detail">${esc(e.detail)}</span>` : ""}
+        ${linesHtml}
         ${hints ? `<span class="ev-hints">${hints}</span>` : ""}</div>`;
     }).join("")}</div>`;
   }
@@ -474,9 +546,12 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
       commentBox = `<h3>Comentario del worklog</h3><div class="quote ${b0.comment ? "" : "none"}">${esc(b0.comment || "sin comentario")}</div>
         ${b0.action === "adjust" && b0.original ? `<p style="margin:0">Ajuste de horario: <b class="num">${esc(b0.original)}</b> → <b class="num">${esc(b0.start)}–${esc(b0.end)}</b></p>` : ""}`;
     } else {
+      const own = edited(r);
+      const text = commentText(r);
       commentBox = `<h3>Comentario del worklog</h3>
-        <div class="seg" role="group" aria-label="nivel de comentario">${LEVELS.map((l) => `<button data-act="level" data-key="${esc(r.key)}" data-level="${l}" aria-pressed="${l === lv}">${LEVEL_LABEL[l]}</button>`).join("")}</div>
-        <div class="quote ${lv === "nada" ? "none" : ""}">${lv === "nada" ? "Se carga sin comentario." : esc(comments[lv] || "")}</div>`;
+        <div class="seg" role="group" aria-label="texto sugerido">${LEVELS.map((l) => `<button data-act="level" data-key="${esc(r.key)}" data-level="${l}" aria-pressed="${!own && l === lv}">${LEVEL_LABEL[l]}</button>`).join("")}</div>
+        <textarea id="cm-${esc(r.key)}" class="comment-edit" rows="${Math.min(10, Math.max(3, text.split("\n").length + 1))}" data-bind="comment" data-key="${esc(r.key)}" aria-label="Comentario del worklog" placeholder="Se carga sin comentario">${esc(text)}</textarea>
+        <span class="muted comment-hint" data-hint="${esc(r.key)}" style="font-size:12.5px">${own ? "Texto editado a mano: tocá un nivel para volver a un texto sugerido." : "Los niveles son textos sugeridos; podés editar el texto directamente."}</span>`;
     }
     const src = r.src || Object.fromEntries(r.ids.map((id) => [id, D.blocks[id].minutes]));
     const partial = r.ids.some((id) => (src[id] ?? D.blocks[id].minutes) !== D.blocks[id].minutes);
@@ -590,7 +665,8 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
       const similar = (n.similar || []).map((k) => `<a href="${esc((D.issues[k] && D.issues[k].url) || "#")}" target="_blank" rel="noopener">${esc(k)}</a>`).join(", ");
       const mins = Object.values(D.blocks).filter((b) => b.issue === n.ref).reduce((a, b) => a + b.minutes, 0);
       return `<div class="item">
-        <div class="item-head"><h3>${esc(n.ref)} · ${esc(n.summary)}</h3><span class="pill">${esc(n.project)} · ${esc(n.type)}${n.parent ? ` · padre ${esc(n.parent)}` : ""}</span></div>
+        <div class="item-head"><h3>${esc(n.ref)}</h3><span class="pill">${esc(n.project)} · ${esc(n.type)}${n.parent ? ` · padre ${esc(n.parent)}` : ""}</span></div>
+        <label class="field" for="ni-sum-${esc(n.ref)}">Resumen *<input type="text" id="ni-sum-${esc(n.ref)}" data-bind="ni-summary" data-ref="${esc(n.ref)}" value="${esc(s.summary ?? n.summary)}"></label>
         <span class="muted" style="font-size:13px">${dur(mins)} asignados en el plan${similar ? ` · campos tomados de ${similar}` : ""}</span>
         <span class="muted" style="font-size:13px">Después de crearla y cargar las horas, se abre una ronda para pasarla al estado que corresponda.</span>
         ${fields}
@@ -702,6 +778,23 @@ body.locked main > :not(.sent) { opacity: .6; pointer-events: none; }
   // ---------------------------------------------------------------- acciones
   function rowByKey(key) { return variant().rows.find((r) => r.key === key); }
 
+  // Edición directa del comentario: si vuelve a coincidir con el texto sugerido del nivel, deja de ser propio.
+  function setCommentText(key, value) {
+    const r = rowByKey(key);
+    if (!r) return;
+    if (value === presetText(r, levelOf(key))) delete state.texts[key];
+    else state.texts[key] = value;
+    const own = edited(r);
+    for (const btn of main.querySelectorAll(`[data-act="level"][data-key="${CSS.escape(key)}"]`))
+      btn.setAttribute("aria-pressed", String(!own && btn.dataset.level === levelOf(key)));
+    const hint = main.querySelector(`[data-hint="${CSS.escape(key)}"]`);
+    if (hint) hint.textContent = own ? "Texto editado a mano: tocá un nivel para volver a un texto sugerido." : "Los niveles son textos sugeridos; podés editar el texto directamente.";
+    const prev = main.querySelector(`.row[data-key="${CSS.escape(key)}"] .prev`);
+    if (prev) { prev.textContent = value.trim() ? value : "sin comentario"; prev.classList.toggle("none", !value.trim()); }
+    scheduleSave();
+    renderBar();
+  }
+
   function toggleConfirm(key) {
     const r = rowByKey(key);
     if (!r) return;
@@ -773,6 +866,21 @@ Escribí en español, en 2 a 5 oraciones, qué se hizo y cómo quedó resuelto. 
     location.reload();
   }
 
+  // Uso real de la página (mouse, teclado, scroll) con la pestaña visible: el servidor lo anota
+  // como actividad del día, a lo sumo un aviso por minuto. Sin uso no hay avisos, así que irse o
+  // dejar la página de fondo no suma tiempo.
+  const ACTIVITY_MS = 60000;
+  let lastActivity = 0;
+  function noteActivity() {
+    if (!online || document.visibilityState !== "visible") return;
+    const now = Date.now();
+    if (now - lastActivity < ACTIVITY_MS) return;
+    lastActivity = now;
+    api("/api/activity", { method: "POST", body: { kind: "input" } }).catch(() => { lastActivity = 0; });
+  }
+  for (const type of ["pointerdown", "pointermove", "keydown", "wheel", "scroll", "input", "touchstart"])
+    document.addEventListener(type, noteActivity, { capture: true, passive: true });
+
   function connectEvents() {
     const es = new EventSource(`/api/events?t=${encodeURIComponent(TOKEN)}`);
     es.addEventListener("hello", (e) => {
@@ -820,7 +928,7 @@ Escribí en español, en 2 a 5 oraciones, qué se hizo y cómo quedó resuelto. 
       const val = !marked(r);
       r.ids.forEach((i) => { state.absorb[i] = val; });
       if (val) state.confirmed[r.key] = false;
-    } else if (act === "level") state.levels[el.dataset.key] = el.dataset.level;
+    } else if (act === "level") { state.levels[el.dataset.key] = el.dataset.level; delete state.texts[el.dataset.key]; }
     else if (act === "confirm-all" || act === "confirm-high") {
       for (const r of variant().rows) {
         if (r.kind !== "block" || D.blocks[r.ids[0]].action === "existing" || marked(r)) continue;
@@ -873,10 +981,12 @@ Escribí en español, en 2 a 5 oraciones, qué se hizo y cómo quedó resuelto. 
   // Los <select> también disparan "input": los campos que no cambian el layout se guardan acá sin re-render.
   main.addEventListener("input", (ev) => {
     const el = ev.target, b = el.dataset.bind;
+    if (b === "comment") { setCommentText(el.dataset.key, el.value); return; }
     if (b === "note") state.notes[el.dataset.key] = el.value;
     else if (b === "global") state.global_note = el.value;
     else if (b === "new-request") (state.new_requests[el.dataset.req] ||= {}).hint = el.value;
     else if (b === "ni-note") (state.new_issues[el.dataset.ref] ||= { fields: {} }).note = el.value;
+    else if (b === "ni-summary") (state.new_issues[el.dataset.ref] ||= { fields: {} }).summary = el.value;
     else if (b === "ni-key") (state.new_issues[el.dataset.ref] ||= { fields: {} }).existing_key = el.value.trim().toUpperCase();
     else if (b === "ni-field") ((state.new_issues[el.dataset.ref] ||= { fields: {} }).fields ||= {})[el.dataset.field] = el.value;
     else if (b === "res-comment") (state.followup[el.dataset.issue] ||= {}).comment = el.value;

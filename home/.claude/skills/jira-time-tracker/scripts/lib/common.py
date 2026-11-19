@@ -81,8 +81,20 @@ DEFAULTS: dict[str, Any] = {
                 "netflix.com", "web.whatsapp.com", "mail.google.com", "play.hbomax.com", "disneyplus.com",
                 "primevideo.com", "spotify.com", "tiktok.com", "mercadolibre.com.ar",
             ],
+            # Sitios cuyas visitas no cuentan como actividad porque el uso real se ve en otra
+            # fuente (Teams: los mensajes). No aparecen en la línea de tiempo.
+            "ignore_domains": ["teams.cloud.microsoft", "teams.microsoft.com"],
+            # Ráfaga de recargas que se toma como restauración de pestañas al abrir Chrome:
+            # al menos `restore_min_domains` sitios distintos recargados en `restore_window_seconds`.
+            "restore_min_domains": 4,
+            "restore_window_seconds": 30,
         },
+        # Uso de la página de revisión del propio skill (ver collectors/review_page.py): un tramo
+        # se corta con más de `idle_gap_minutes` sin uso real de la página.
+        "review_page": {"enabled": True, "idle_gap_minutes": 5},
         "outlook": {"enabled": True},
+        # Mails enviados y recibidos (Outlook), consultados por el subagente MCP.
+        "mail": {"enabled": True},
         "teams": {"enabled": True},
         "sharepoint": {"enabled": True},
         "google_drive": {"enabled": True},
@@ -295,6 +307,25 @@ def raw_dir(day: date, create: bool = True) -> Path:
     return state_dir(day, create) / "raw"
 
 
+# --------------------------------------------------------------------------- tandas
+# El skill se puede correr varias veces en el día (por ejemplo antes del almuerzo y a la salida).
+# Cada corrida es una tanda: al cerrarla (`plan.py close`) su plan, la página y el estado de la
+# página se archivan en <state>/runs/<n>/ y se anota en <state>/runs.json. La tanda siguiente
+# arranca donde terminó la última cargada.
+
+RUNS = "runs.json"
+
+
+def load_runs(day: date) -> list[dict]:
+    return (read_json(state_dir(day, create=False) / RUNS, {}) or {}).get("runs", [])
+
+
+def loaded_until(runs: list[dict]) -> str | None:
+    """Fin (ISO) de la última tanda cargada en Jira, o None si no hubo ninguna."""
+    ends = [r["until"] for r in runs if r.get("outcome") == "load" and r.get("until")]
+    return max(ends, key=parse_iso) if ends else None
+
+
 def read_json(path: Path, default: Any = None) -> Any:
     path = Path(path)
     if not path.exists():
@@ -401,6 +432,41 @@ def prompts_detail(prompts: list[str], chars: int = 160) -> str:
     if len(prompts) > 1:
         parts.append(f"último prompt: {prompts[-1][:chars]}")
     return " | ".join(parts + [f"{len(prompts)} prompts"])
+
+
+_TAG_RX = re.compile(r"<(script|style)\b.*?</\1>|<[^>]+>", re.S | re.I)
+_QUOTE_RX = re.compile(r"(^|\n)\s*(De|From|Enviado el|El .{0,80} escribió|On .{0,80} wrote)\s*:?.*", re.S | re.I)
+
+
+def plain_text(value: Any, limit: int | None = None, drop_quoted: bool = False) -> str:
+    """Texto plano de un fragmento que puede traer HTML (mails, mensajes de Teams): saca
+    etiquetas, scripts y estilos, decodifica entidades y junta espacios. Con `drop_quoted`
+    corta el historial citado de una respuesta («De: …», «On … wrote:»)."""
+    import html as html_mod
+    text = re.sub(r"<br\s*/?>|</?(p|div|tr|li|h\d)\b[^>]*>", "\n", str(value or ""), flags=re.I)
+    text = _TAG_RX.sub(" ", text)
+    text = html_mod.unescape(text).replace("\xa0", " ")
+    if drop_quoted:
+        text = _QUOTE_RX.sub("", text)
+    text = " ".join(text.split())
+    if limit and len(text) > limit:
+        text = text[:limit - 1] + "…"
+    return text
+
+
+PROMPT_CHARS = 300
+
+
+def prompt_list(seg: list[tuple], chars: int = PROMPT_CHARS) -> list[dict]:
+    """Todos los prompts del usuario de un tramo, con su hora: [{at, text}]. `seg` son tuplas
+    (datetime, prompt|None, ...). Cada texto se corta a `chars` caracteres."""
+    out = []
+    for item in seg:
+        ts, prompt = item[0], item[1]
+        if prompt:
+            text = " ".join(prompt.split())
+            out.append({"at": ts.isoformat(), "text": text if len(text) <= chars else text[:chars - 1] + "…"})
+    return out
 
 
 def make_event_id(source: str, *parts: Any) -> str:

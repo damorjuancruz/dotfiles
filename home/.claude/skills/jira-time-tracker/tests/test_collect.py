@@ -7,7 +7,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import collect
-from collectors import chrome, claude_code
+from collectors import chrome, claude_code, review_page
 from lib import common
 
 CFG = common.load_config(Path(__file__).resolve().parent.parent / "config.example.json")
@@ -56,6 +56,24 @@ class TestClaudeCode(unittest.TestCase):
             self.assertIn("ahora los tests", ev[1]["detail"])
 
 
+    def test_fork_ignores_copied_history(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            proj = Path(tmp) / "-home-u-code-app"
+            proj.mkdir()
+            copied = {"forkedFrom": {"sessionId": "padre", "messageUuid": "x"}}
+            lines = [
+                {"type": "user", "timestamp": "2026-10-05T12:00:00Z", "message": {"content": "del padre"}, **copied},
+                {"type": "assistant", "timestamp": "2026-10-05T12:05:00Z", **copied},
+                {"type": "user", "timestamp": "2026-10-05T15:00:00Z", "message": {"content": "propio del fork"}},
+            ]
+            (proj / "fork-1.jsonl").write_text("\n".join(json.dumps(x) for x in lines) + "\n")
+            cfg = {**CFG, "sources": {**CFG["sources"], "claude_code": {"projects_dir": tmp, "idle_gap_minutes": 15}}}
+            ev = claude_code.collect(cfg, {}, DAY)["events"]
+            self.assertEqual(len(ev), 1)
+            self.assertEqual(ev[0]["start"], "2026-10-05T12:00:00-03:00")
+            self.assertNotIn("del padre", ev[0]["detail"])
+
+
 class TestChrome(unittest.TestCase):
     def test_grouping_and_hints(self):
         visits = [
@@ -81,15 +99,33 @@ class TestChrome(unittest.TestCase):
             db = Path(tmp) / "History"
             con = sqlite3.connect(db)
             con.executescript("CREATE TABLE urls (id INTEGER PRIMARY KEY, url TEXT, title TEXT);"
-                              "CREATE TABLE visits (id INTEGER PRIMARY KEY, url INTEGER, visit_time INTEGER);")
+                              "CREATE TABLE visits (id INTEGER PRIMARY KEY, url INTEGER, visit_time INTEGER, transition INTEGER, from_visit INTEGER);")
             con.execute("INSERT INTO urls VALUES (1, 'https://a.com', 'A')")
-            con.execute("INSERT INTO visits VALUES (1, 1, ?)", (chrome.to_chrome_time(utc(12, 0)),))
-            con.execute("INSERT INTO visits VALUES (2, 1, ?)", (chrome.to_chrome_time(datetime(2026, 10, 4, 12, tzinfo=timezone.utc)),))
+            con.execute("INSERT INTO visits VALUES (1, 1, ?, 805306368, 0)", (chrome.to_chrome_time(utc(12, 0)),))
+            con.execute("INSERT INTO visits VALUES (2, 1, ?, 0, 0)", (chrome.to_chrome_time(datetime(2026, 10, 4, 12, tzinfo=timezone.utc)),))
             con.commit()
             con.close()
             start, end = common.day_bounds(DAY, TZ)
             v = chrome.read_visits(db, start, end)
-            self.assertEqual(v, [(utc(12, 0), "https://a.com", "A")])
+            self.assertEqual(v, [(utc(12, 0), "https://a.com", "A", 805306368, 0)])
+
+    def test_noise_is_dropped(self):
+        def v(h, m, s, url, core, from_visit=0):
+            return (datetime(2026, 10, 5, h, m, s, tzinfo=timezone.utc), url, "t", 0x30000000 | core, from_visit)
+        visits = [
+            v(12, 0, 0, "https://outlook.office.com/mail/", chrome.AUTO_BOOKMARK),        # apertura de app
+            v(12, 0, 1, "https://chat.iea.net.ar/", chrome.AUTO_BOOKMARK),                # apertura de app
+            v(12, 1, 0, "https://chat.iea.net.ar/room", 0),                               # uso real: queda
+            *[v(12, 2, i, f"https://s{i}.com/", chrome.RELOAD) for i in range(5)],        # restauración
+            v(13, 0, 0, "https://github.com/x", chrome.RELOAD),                           # recarga suelta: queda
+            v(13, 5, 0, "https://teams.cloud.microsoft/", 0),                             # ignore_domains
+        ]
+        kept, dropped = chrome.drop_noise(visits, CFG)
+        self.assertEqual([x[1] for x in kept], ["https://chat.iea.net.ar/room", "https://github.com/x",
+                                                 "https://teams.cloud.microsoft/"])
+        self.assertEqual(dropped, {"apertura de app": 2, "restauración de pestañas": 5})
+        ev = chrome.group_sessions(kept, CFG, TZ)
+        self.assertEqual([e["hints"]["domain"] for e in ev], ["chat.iea.net.ar", "github.com"])
 
 
 class TestDigest(unittest.TestCase):
@@ -128,7 +164,7 @@ class TestDigest(unittest.TestCase):
         self.assertIn(" ● SUP-41 [En curso] Ajena tocada hoy", text)
         self.assertIn("↳ Detalle del problema", text)
         self.assertIn("[br=feat/cuit-validation]", text)
-        self.assertIn("Fuentes MCP a consultar por el agente: outlook, teams, sharepoint, google_drive", text)
+        self.assertIn("Fuentes MCP a consultar por el agente: outlook, mail, teams, sharepoint, google_drive", text)
 
     def test_parallel_sessions(self):
         def ev(src, start, end, prompts, sid):
@@ -149,8 +185,27 @@ class TestDigest(unittest.TestCase):
         self.assertNotIn("shadowed", g)
         text = collect.render_digest({**collect.build_digest(DAY, CFG, {}, datetime(2026, 10, 5, 17, 42, tzinfo=TZ)),
                                       "timeline": timeline}, TZ)
-        self.assertIn("interacción 09:55–10:00 · tapada 10:15–10:20 por t3:b · tapada 10:35–10:40 por t3:b", text)
-        self.assertIn("sin prompts: autónoma · tapada 10:35–10:40 por t3:b", text)
+        self.assertIn("sesión a [interacción 09:55–10:00 · tapada 10 min por t3:b]", text)
+        self.assertIn("sin prompts: autónoma · tapada 5 min por t3:b", text)
+
+    def test_prompts_are_listed_under_the_session(self):
+        hints = {"prompt_times": ["2026-10-05T10:00:00-03:00", "2026-10-05T10:20:00-03:00"],
+                 "prompts": [{"at": "2026-10-05T10:00:00-03:00", "text": "arreglá el importador de remitos"},
+                             {"at": "2026-10-05T10:20:00-03:00", "text": "sí"}]}
+        ev = common.Event("cc", "2026-10-05T10:00:00-03:00", "2026-10-05T10:40:00-03:00", "sesión x", "primer prompt: …",
+                          hints=hints, id="cc:x").to_dict()
+        timeline = [ev]
+        collect.mark_parallel(timeline, 5)
+        text = collect.render_digest({**collect.build_digest(DAY, CFG, {}, datetime(2026, 10, 5, 17, 42, tzinfo=TZ)),
+                                      "timeline": timeline}, TZ)
+        self.assertIn("  10:00–10:40 cc     sesión x {cc:x}\n       10:00  «arreglá el importador de remitos»\n       10:20  «sí»", text)
+        self.assertNotIn("primer prompt", text)
+        self.assertNotIn("interacción", text)
+
+    def test_prompt_list_truncates(self):
+        t = datetime(2026, 10, 5, 10, 0, tzinfo=TZ)
+        out = common.prompt_list([(t, "a  b"), (t, None), (t, "x" * 400)], chars=10)
+        self.assertEqual([p["text"] for p in out], ["a b", "xxxxxxxxx…"])
 
     def test_t3_and_remote_sessions_cross(self):
         # Thread de Codex en T3 con interacción tapa a una sesión de Claude dentro de T3 (cc con
@@ -176,6 +231,33 @@ class TestDigest(unittest.TestCase):
         collect.mark_parallel(timeline, 5)
         self.assertEqual(timeline[0]["hints"]["parallel_interaction"], ["cc:b"])
         self.assertEqual(timeline[1]["hints"]["parallel_interaction"], ["cc:a"])
+
+    def test_review_page_activity_shadows_and_links(self):
+        # Uso de la página 10:00–10:03 y 10:20 (se corta: más de 5 min sin uso). La sesión del
+        # skill (cc:skill) es la que levantó el servidor; otra sesión autónoma queda tapada.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "a.jsonl"
+            recs = [("10:00", "input"), ("10:01", "input"), ("10:02", "send"), ("10:20", "input")]
+            path.write_text("".join(json.dumps({"at": f"2026-10-05T{t}:00-03:00", "kind": k, "review_date": "2026-10-02",
+                                                "session": "abcd1234"}) + "\n" for t, k in recs)
+                            + "basura\n" + json.dumps({"at": "2026-10-06T10:00:00-03:00", "kind": "input"}) + "\n")
+            res = review_page.collect(CFG, {}, DAY, path)
+        evs = res["events"]
+        self.assertEqual([(e["start"][11:16], e["end"][11:16]) for e in evs], [("10:00", "10:03"), ("10:20", "10:21")])
+        self.assertEqual(evs[0]["detail"], "2 avisos de uso, 1 envíos")
+        self.assertIn("revisión de horas del 02/10", evs[0]["title"])
+        other = common.Event("cc", "2026-10-05T09:50:00-03:00", "2026-10-05T10:30:00-03:00", "otra",
+                             hints={"session": "ffff0000"}, id="cc:otra").to_dict()
+        skill = common.Event("cc", "2026-10-05T10:02:00-03:00", "2026-10-05T10:04:00-03:00", "skill",
+                             hints={"session": "abcd1234"}, id="cc:skill").to_dict()
+        d = collect.build_digest(DAY, CFG, {"review_page": res, "claude_code": {"events": [other, skill]}},
+                                 datetime(2026, 10, 5, 17, 42, tzinfo=TZ))
+        by_id = {e["id"]: e for e in d["timeline"]}
+        self.assertEqual([(x["start"][11:16], x["end"][11:16]) for x in by_id["cc:otra"]["hints"]["shadowed"]],
+                         [("10:00", "10:03"), ("10:20", "10:21")])
+        self.assertEqual(evs[0]["hints"]["agent_events"], ["cc:skill"])
+        text = collect.render_digest(d, TZ)
+        self.assertIn("sesión del skill cc:skill · interacción 10:00–10:03", text)
 
     def test_range_without_erpnext(self):
         d = collect.build_digest(DAY, CFG, {}, datetime(2026, 10, 5, 17, 42, tzinfo=TZ))

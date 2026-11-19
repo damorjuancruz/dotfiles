@@ -6,9 +6,12 @@ cuentan como actividad de la sesión padre) y arma segmentos de actividad: se co
 segmento cuando hay más de `idle_gap_minutes` sin mensajes.
 
 Cada segmento lleva cwd, branch, título de la sesión y los prompts reales del usuario
-(primero y último, truncados), con la hora de cada prompt en `hints.prompt_times` (para
+(todos, con su hora, en `hints.prompts`; primero y último en `detail`), con la hora de cada prompt en `hints.prompt_times` (para
 separar la interacción del trabajo autónomo, ver collect.mark_parallel). La sesión desde la que se corre el skill se marca con
 `current: true` en hints.
+
+Los forks copian el historial de la sesión padre (líneas con `forkedFrom`, con la hora original):
+esas líneas se ignoran, así cada fork cuenta solo desde que se separó.
 
 Las sesiones de Claude que corren dentro de T3 Code también dejan su transcript acá. Para esas,
 si la fuente t3_code está activa, el título, el proyecto y el thread salen de T3 (ver
@@ -82,6 +85,10 @@ def read_session(files: list[Path], d_start: datetime, d_end: datetime, tz) -> d
                     title = o["customTitle"]
                 if o.get("type") not in ("user", "assistant") or not o.get("timestamp"):
                     continue
+                if o.get("forkedFrom"):
+                    # Historial copiado de la sesión padre al hacer un fork (misma hora que el
+                    # original): ya cuenta en el padre y no es actividad de esta sesión.
+                    continue
                 entrypoint = entrypoint or o.get("entrypoint")
                 ts = common.parse_iso(o["timestamp"]).astimezone(tz)
                 if not d_start <= ts < d_end:
@@ -151,7 +158,8 @@ def collect(cfg: dict, env: dict, day: date, current_session: str | None = None)
                 title += f": {session_title}"
             keys = common.find_issue_keys(" ".join([branch_s, cwd_s, session_title or "", *prompts]), key_rx)
             hints = {"repo": project, "cwd": cwd_s, "branch": branch_s, "issue_keys": keys, "session": sid[:8],
-                     "prompt_times": [] if internal else [ts.isoformat() for ts, p, _, _ in seg if p]}
+                     "prompt_times": [] if internal else [ts.isoformat() for ts, p, _, _ in seg if p],
+                     "prompts": [] if internal else common.prompt_list(seg)}
             if t3:
                 hints["t3_thread"] = t3_code.short_id(t3["id"])
             if sid == current_session:

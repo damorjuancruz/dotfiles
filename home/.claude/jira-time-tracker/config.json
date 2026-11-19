@@ -26,7 +26,7 @@
       "excluded_statuses": [
         "Cerrado"
       ],
-      "agent_notes": ""
+      "agent_notes": "Cada pedido de soporte de otra persona (sobre todo de ERPNext: altas, configuraciones, consultas) va en una incidencia propia, hija de la tarea principal del sistema, no en las subtareas de Tareas Varias. Buscá el pedido original en Teams o mail, aunque sea de días anteriores: de ahí salen el Informador y a quién afecta (empleado, cliente)."
     },
     "SAI": {
       "excluded_status_categories": [
@@ -123,6 +123,6 @@
       "12:30",
       "14:00"
     ],
-    "comment_level": "normal"
+    "comment_level": "breve"
   }
 }

@@ -122,3 +122,36 @@ class TestCollect(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMergeBulk(unittest.TestCase):
+    def ev(self, hm, title, doctype, docname, detail):
+        ts = f"2026-10-16T{hm}:00-03:00"
+        return {"id": f"erp:{docname}{title[:3]}", "source": "erp", "start": ts, "end": ts, "title": title,
+                "detail": detail, "hints": {"doctype": doctype, "docname": docname}, "weight": "normal"}
+
+    def test_bulk_edits_and_comments_merge(self):
+        from collectors import erpnext as E
+        evs = [self.ev("12:16", f"editó Leave Allocation L-{i}", "Leave Allocation", f"L-{i}", "1 guardado(s); campos: a, b")
+               for i in range(8)]
+        evs += [self.ev("14:42", f"comment en Attendance A-{i}", "Attendance", f"A-{i}", "Marked absent") for i in range(3)]
+        evs += [self.ev("12:30", "editó Employee Juan Pérez", "Employee", "Juan Pérez", "1 guardado(s); campos: x"),
+                self.ev("12:31", "editó Leave Allocation L-9", "Leave Allocation", "L-9", "1 guardado(s); campos: otro")]
+        out = E.merge_bulk(evs)
+        titles = [e["title"] for e in out]
+        self.assertIn("editó 8 Leave Allocation (en tanda)", titles)
+        self.assertIn("comentó 3 Attendance (en tanda)", titles)
+        self.assertIn("editó Employee Juan Pérez", titles)        # suelto: queda igual
+        self.assertIn("editó Leave Allocation L-9", titles)       # otros campos: no entra en la tanda
+        bulk = next(e for e in out if e["title"].startswith("editó 8"))
+        self.assertEqual(bulk["detail"], "L-0 … L-7; campos: a, b")
+        self.assertEqual(len(bulk["hints"]["docnames"]), 8)
+        small = next(e for e in out if e["title"].startswith("comentó"))
+        self.assertIn("A-0, A-1, A-2", small["detail"])
+
+    def test_gap_splits_runs(self):
+        from collectors import erpnext as E
+        evs = [self.ev(hm, f"editó X D{i}", "X", f"D{i}", "1 guardado(s); campos: a")
+               for i, hm in enumerate(["09:00", "09:05", "09:10", "11:00", "11:01"])]
+        out = E.merge_bulk(evs)
+        self.assertEqual([e["title"] for e in out], ["editó 3 X (en tanda)", "editó X D3", "editó X D4"])

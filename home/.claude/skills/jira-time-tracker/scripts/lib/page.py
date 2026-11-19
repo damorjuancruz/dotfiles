@@ -51,7 +51,7 @@ def _lunch_json(info: dict | None) -> dict | None:
 
 
 SOURCE_LABELS = {"git": "git", "gh": "GitHub", "cc": "Claude Code", "chrome": "Chrome", "erp": "ERPNext",
-                 "outlook": "Outlook", "teams": "Teams", "jira": "Jira"}
+                 "outlook": "Outlook", "mail": "Mail", "teams": "Teams", "jira": "Jira"}
 
 
 def source_label(ev: dict) -> str:
@@ -69,8 +69,13 @@ def _event_json(ev: dict, tz) -> dict:
     s = common.parse_iso(ev["start"]).astimezone(tz)
     e = common.parse_iso(ev["end"]).astimezone(tz)
     hints = {k: v for k, v in (ev.get("hints") or {}).items() if v not in (None, "", [], {})}
+    for k in ("prompts", "messages"):  # líneas con hora: se muestran como lista en la evidencia
+        if isinstance(hints.get(k), list):
+            hints[k] = [{**x, "at": _hm(common.parse_iso(x["at"]).astimezone(tz)) if x.get("at") else "",
+                         "text": common.plain_text(x.get("text"), 500, drop_quoted=(k == "messages"))}
+                        for x in hints[k] if isinstance(x, dict)]
     return {"source": ev.get("source"), "label": source_label(ev), "start": _hm(s), "end": _hm(e), "title": ev.get("title", ""),
-            "detail": " ".join(str(ev.get("detail") or "").split())[:DETAIL_CHARS], "hints": hints}
+            "detail": common.plain_text(ev.get("detail"), DETAIL_CHARS), "hints": hints}
 
 
 def issue_info(model, key: str, meta: dict) -> dict:
@@ -163,6 +168,7 @@ def build_data(model, vs: dict, meta: dict, raw_events: dict, current: str, warn
         "group_comments": plan.get("group_comments") or {},
         "confirmed_rows": list(confirmed_rows),
         "levels": plan.get("levels") or {},
+        "texts": plan.get("texts") or {},
         "events": {eid: _event_json(raw_events[eid], tz) for eid in sorted(used_events)},
         "issues": issues,
         "candidates": candidates,
