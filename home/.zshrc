@@ -99,15 +99,6 @@ if [[ -z "$TMUX" ]]; then
   bindkey -M emacs '^o' sesh-sessions
   bindkey -M vicmd '^o' sesh-sessions
   bindkey -M viins '^o' sesh-sessions
-
-  # Autorun
-  if [[ -z "$T3CODE_CLI_PATH$T3CODE_PROJECT_ROOT" && "$CHROME_DESKTOP" != com.t3tools.* ]]; then
-    local session
-    session=$(~/.config/sesh/picker.sh -p)
-    if [[ -n "$session" ]]; then
-      exec sesh connect $session
-    fi
-  fi
 fi
 
 # Prompt

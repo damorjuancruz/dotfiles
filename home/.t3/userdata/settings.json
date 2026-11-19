@@ -39,31 +39,6 @@
     }
   ],
   "projectScriptOverrides": {
-    "dd3c71f3-c5d0-4b35-ab9e-93254b2a6c4f": [
-      {
-        "id": "set-up-worktree",
-        "name": "Set Up Worktree",
-        "command": "\"$HOME/.local/bin/t3-setup-grainvision-web\"",
-        "icon": "configure",
-        "runOnWorktreeCreate": true,
-        "async": false
-      },
-      {
-        "id": "clean-up-volumes",
-        "name": "Clean Up Volumes",
-        "command": "\"$HOME/.local/bin/t3-cleanup-grainvision-web\"",
-        "icon": "configure",
-        "runOnWorktreeCreate": false,
-        "runOnSettle": true
-      },
-      {
-        "id": "open-in-nvim-sesh",
-        "name": "Open in nvim (sesh)",
-        "command": "\"$HOME/.local/bin/t3-sesh\" && exit",
-        "icon": "play",
-        "runOnWorktreeCreate": false
-      }
-    ],
     "68f20f63-8d1b-4ff2-9608-709fffb34ce2": [
       {
         "id": "set-up-worktree",
@@ -89,37 +64,42 @@
         "icon": "play",
         "runOnWorktreeCreate": false
       }
+    ],
+    "dd3c71f3-c5d0-4b35-ab9e-93254b2a6c4f": [
+      {
+        "id": "open-in-nvim-sesh",
+        "name": "Open in nvim (sesh)",
+        "command": "\"$HOME/.local/bin/t3-sesh\" && exit",
+        "icon": "play",
+        "runOnWorktreeCreate": false
+      },
+      {
+        "id": "set-up-worktree",
+        "name": "Set Up Worktree",
+        "command": "scripts/setup-worktree.sh --main \"$T3CODE_PROJECT_ROOT\" --worktree \"${T3CODE_WORKTREE_PATH:-$T3CODE_PROJECT_ROOT}\"",
+        "icon": "configure",
+        "runOnWorktreeCreate": true,
+        "async": false
+      },
+      {
+        "id": "tear-down-worktree",
+        "name": "Tear Down Worktree",
+        "command": "scripts/teardown-worktree.sh --worktree \"$T3CODE_WORKTREE_PATH\"",
+        "icon": "configure",
+        "runOnWorktreeCreate": false,
+        "runOnSettle": true
+      },
+      {
+        "id": "open-db-in-heidisql",
+        "name": "Open DB in HeidiSQL",
+        "command": "scripts/open-heidisql.sh --checkout \"${T3CODE_WORKTREE_PATH:-$T3CODE_PROJECT_ROOT}\" && exit",
+        "icon": "play",
+        "runOnWorktreeCreate": false
+      }
     ]
   },
   "defaultRuntimeMode": "auto",
   "projectSettingsOverrides": {
-    "dd3c71f3-c5d0-4b35-ab9e-93254b2a6c4f": {
-      "defaultProjectScripts": [
-        {
-          "id": "set-up-worktree",
-          "name": "Set Up Worktree",
-          "command": "\"$HOME/.local/bin/t3-setup-grainvision-web\"",
-          "icon": "configure",
-          "runOnWorktreeCreate": true,
-          "async": false
-        },
-        {
-          "id": "clean-up-volumes",
-          "name": "Clean Up Volumes",
-          "command": "\"$HOME/.local/bin/t3-cleanup-grainvision-web\"",
-          "icon": "configure",
-          "runOnWorktreeCreate": false,
-          "runOnSettle": true
-        },
-        {
-          "id": "open-in-nvim-sesh",
-          "name": "Open in nvim (sesh)",
-          "command": "\"$HOME/.local/bin/t3-sesh\" && exit",
-          "icon": "play",
-          "runOnWorktreeCreate": false
-        }
-      ]
-    },
     "68f20f63-8d1b-4ff2-9608-709fffb34ce2": {
       "defaultProjectScripts": [
         {
@@ -155,6 +135,40 @@
     },
     "1389da3d-468e-4152-af1a-7e315399ba04": {
       "defaultThreadEnvMode": "local"
+    },
+    "dd3c71f3-c5d0-4b35-ab9e-93254b2a6c4f": {
+      "defaultProjectScripts": [
+        {
+          "id": "open-in-nvim-sesh",
+          "name": "Open in nvim (sesh)",
+          "command": "\"$HOME/.local/bin/t3-sesh\" && exit",
+          "icon": "play",
+          "runOnWorktreeCreate": false
+        },
+        {
+          "id": "set-up-worktree",
+          "name": "Set Up Worktree",
+          "command": "scripts/setup-worktree.sh --main \"$T3CODE_PROJECT_ROOT\" --worktree \"${T3CODE_WORKTREE_PATH:-$T3CODE_PROJECT_ROOT}\"",
+          "icon": "configure",
+          "runOnWorktreeCreate": true,
+          "async": false
+        },
+        {
+          "id": "tear-down-worktree",
+          "name": "Tear Down Worktree",
+          "command": "scripts/teardown-worktree.sh --worktree \"$T3CODE_WORKTREE_PATH\"",
+          "icon": "configure",
+          "runOnWorktreeCreate": false,
+          "runOnSettle": true
+        },
+        {
+          "id": "open-db-in-heidisql",
+          "name": "Open DB in HeidiSQL",
+          "command": "scripts/open-heidisql.sh --checkout \"${T3CODE_WORKTREE_PATH:-$T3CODE_PROJECT_ROOT}\" && exit",
+          "icon": "play",
+          "runOnWorktreeCreate": false
+        }
+      ]
     }
   },
   "projectSettingsFolded": true,
