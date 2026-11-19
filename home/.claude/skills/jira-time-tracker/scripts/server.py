@@ -10,6 +10,13 @@ se pierde aunque el watcher se corte o se reinicie la sesión.
 Cuando `plan.py build` reescribe review.html, la página se recarga sola (SSE). El servidor corre
 desacoplado de la sesión del agente y se apaga solo después de MAX_HOURS.
 
+Uso de la página como actividad: la página avisa (`POST /api/activity`, a lo sumo una vez por
+minuto) cuando el usuario la usa de verdad (mouse, teclado, scroll) con la pestaña visible. Esos
+avisos, los envíos y los pedidos se anotan en <STATE_ROOT>/activity/<fecha real>.jsonl con la
+sesión del agente que levantó el servidor. Con eso el colector `review_page` cuenta el tiempo de
+revisión de horas el día que se hizo (que no es el día que se revisa). Si el usuario se va o deja
+la página de fondo, no hay avisos y no se cuenta tiempo.
+
 Uso:
   server.py [--date AAAA-MM-DD] start        levanta el servidor (o reusa el que está vivo) e imprime la URL
   server.py [--date ...] status
@@ -60,6 +67,7 @@ ASKS = "asks"
 MAX_HOURS = 16
 MAX_BODY = 5_000_000
 ACTIONS = ("review", "load", "cancel", "apply", "apply_more", "done")
+ACTIVITY_KINDS = ("input", "send", "ask")
 
 
 # --------------------------------------------------------------------------- utilidades
@@ -119,6 +127,18 @@ def free_port() -> int:
         return s.getsockname()[1]
 
 
+def activity_path(adir: Path, when: datetime) -> Path:
+    return adir / f"{when.date().isoformat()}.jsonl"
+
+
+def agent_ids() -> dict:
+    """Sesión de Claude Code y thread de T3 desde los que se corre el skill (si se conocen)."""
+    sid = os.environ.get("CLAUDE_CODE_SESSION_ID") or ""
+    thread = os.environ.get("T3CODE_THREAD_ID") or ""
+    thread = thread.rsplit(":", 1)[-1].rsplit("%3A", 1)[-1][:8]  # como t3_code.short_id
+    return {k: v for k, v in {"session": sid[:8], "t3_thread": thread}.items() if v}
+
+
 def page_url(info: dict) -> str:
     return f"http://127.0.0.1:{info['port']}/?t={info['token']}"
 
@@ -127,8 +147,10 @@ def page_url(info: dict) -> str:
 
 
 class App:
-    def __init__(self, sdir: Path, token: str):
+    def __init__(self, sdir: Path, token: str, activity_dir: Path | None = None, agent: dict | None = None):
         self.sdir, self.token = sdir, token
+        self.activity_dir = activity_dir or common.STATE_ROOT / "activity"
+        self.agent = agent or {}
         self.cond = threading.Condition()
         self.seq = 0
         self.events: list[tuple[int, str, dict]] = []
@@ -148,6 +170,15 @@ class App:
             if cur and cur != last:
                 last = cur
                 self.publish("reload", {"build": cur})
+
+    def record_activity(self, kind: str) -> None:
+        """Anota que el usuario usó la página, en el archivo del día en que lo hizo."""
+        now = datetime.now().astimezone()
+        rec = {"at": now.isoformat(timespec="seconds"), "kind": kind, "review_date": self.sdir.name, **self.agent}
+        with self.write_lock:
+            self.activity_dir.mkdir(parents=True, exist_ok=True)
+            with open(activity_path(self.activity_dir, now), "a", encoding="utf-8") as f:
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
 
     def save_state(self, st: dict) -> None:
         with self.write_lock:
@@ -264,9 +295,17 @@ def make_handler(app: App):
                         return self._send(400, b"falta sent/action", "text/plain")
                     app.save_state(body)
                     log_event(app.sdir, f"ENVIADO ronda={body.get('round')} acción={body['action']}")
+                    app.record_activity("send")
+                    return self._json({"ok": True})
+                if route == "/api/activity":
+                    kind = body.get("kind")
+                    if kind not in ACTIVITY_KINDS:
+                        return self._send(400, b"kind invalido", "text/plain")
+                    app.record_activity(kind)
                     return self._json({"ok": True})
                 if route == "/api/ask":
                     ask = app.new_ask(body)
+                    app.record_activity("ask")
                     log_event(app.sdir, f"PEDIDO {ask['id']} comentario {ask['issue']}")
                     return self._json({"id": ask["id"]})
                 if route == "/api/reply":
@@ -320,7 +359,7 @@ def serve(sdir: Path) -> int:
     if not info:
         print(f"No existe {sdir / INFO}: usá `start`.", file=sys.stderr)
         return 3
-    app = App(sdir, info["token"])
+    app = App(sdir, info["token"], agent=info.get("agent"))
     httpd = http.server.ThreadingHTTPServer(("127.0.0.1", int(info["port"])), make_handler(app))
     httpd.daemon_threads = True
     info.update(pid=os.getpid(), started=datetime.now().isoformat(timespec="seconds"))
@@ -348,7 +387,7 @@ def cmd_start(sdir: Path) -> int:
     port = info.get("port")
     if not port or not port_free(int(port)):
         port = free_port()
-    info = {"port": int(port), "token": info.get("token") or secrets.token_urlsafe(18)}
+    info = {"port": int(port), "token": info.get("token") or secrets.token_urlsafe(18), "agent": agent_ids()}
     common.write_json(sdir / INFO, info)
     os.chmod(sdir / INFO, 0o600)
     with open(sdir / ERR, "a") as err:

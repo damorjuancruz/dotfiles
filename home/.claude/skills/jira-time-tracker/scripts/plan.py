@@ -327,6 +327,46 @@ def load_raw_events(raw: Path) -> dict[str, dict]:
     return events
 
 
+def _hm_iso(value, tz) -> str:
+    try:
+        return common.fmt_hm(common.parse_iso(value).astimezone(tz))
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def mcp_coverage_warnings(raw: Path, tz) -> list[str]:
+    """Avisos de cobertura de `raw/mcp.json` (lo escribe el subagente de la fase 1).
+
+    `coverage` tiene una entrada por fuente MCP consultada:
+    `{"status": "complete|partial|failed", "incomplete": [{"start", "end", "reason"}], "error", "note"}`.
+    Un mcp.json sin `coverage` es de antes de este control: no se sabe si quedó completo."""
+    path = raw / "mcp.json"
+    data = common.read_json(path, None) if path.is_file() else None
+    if not isinstance(data, dict):
+        return []
+    cov = data.get("coverage")
+    if not isinstance(cov, dict):
+        return ["Fuentes MCP sin datos de cobertura (raw/mcp.json no trae `coverage`): "
+                "pueden faltar mensajes, reuniones o documentos."]
+    out = []
+    for src in sorted(cov):
+        c = cov[src] if isinstance(cov[src], dict) else {}
+        status = c.get("status")
+        if status == "complete":
+            if c.get("note"):
+                out.append(f"Cobertura de {src}: {c['note']}")
+            continue
+        if status == "failed":
+            out.append(f"Cobertura de {src}: no se pudo consultar ({c.get('error') or 'sin detalle'}).")
+            continue
+        parts = [f"{_hm_iso(w.get('start'), tz)}–{_hm_iso(w.get('end'), tz)}"
+                 + (f" ({w['reason']})" if w.get("reason") else "")
+                 for w in c.get("incomplete") or [] if isinstance(w, dict)]
+        detail = ", ".join(parts) if parts else (c.get("error") or "sin detalle de ventanas")
+        out.append(f"Cobertura parcial de {src}: pueden faltar eventos en {detail}.")
+    return out
+
+
 def activity(events: dict[str, dict], tz) -> list[tuple[datetime, datetime]]:
     out = []
     for ev in events.values():
@@ -1397,7 +1437,8 @@ def main(argv: list[str] | None = None) -> int:
         status_report = [] if args.no_jira else status_suggestions(
             model, meta, events, plan_path.parent / "status_signals.json", args.refresh_jira, args.suggest)
         current = variant_name(modes(plan, cfg))
-        data = page.build_data(model, vs, meta, events, current, model.warnings,
+        coverage = mcp_coverage_warnings(raw, common.get_tz(cfg))
+        data = page.build_data(model, vs, meta, events, current, coverage + model.warnings,
                                confirmed_keys(model, vs))
         out_path = plan_path.parent / "review.html"
         page.write_page(out_path, data)
@@ -1415,7 +1456,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {name:<12} {n_blocks} bloques · {tot}{extra}{' · override' if v['override'] else ''}")
             for w in v["warnings"]:
                 print(f"    ! {w}")
-        for w in model.warnings:
+        for w in coverage + model.warnings:
             print(f"! {w}")
         for k, m in meta.items():
             if m.get("error"):

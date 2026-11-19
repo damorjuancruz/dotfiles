@@ -101,6 +101,10 @@
         "mail.google.com"
       ]
     },
+    "review_page": {
+      "enabled": true,
+      "idle_gap_minutes": 5
+    },
     "outlook": {
       "enabled": true
     },

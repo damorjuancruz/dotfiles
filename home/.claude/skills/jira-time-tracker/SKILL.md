@@ -37,6 +37,15 @@ skill). Correr siempre `python $SKILL/scripts/<script>.py`. Si el usuario pasó 
    en la deny-list se muestra en la página tal cual, sin filtros adicionales.
 8. Si el servidor no arranca (`server.py start` termina con ✗), **el flujo se corta**: mostrá
    el error de `<state>/server.err` y no sigas por otro medio.
+9. **Nunca negar actividad con datos posiblemente parciales.** Si el usuario pregunta (en una
+   nota de la página o en el chat) si hubo actividad en un horario, y alguna fuente pudo
+   haber quedado incompleta ahí (cobertura `partial` o `failed` en `raw/mcp.json`, sin
+   `coverage`, o una ventana grande que no se partió), volvé a consultar esa fuente acotada a
+   ese horario antes de responder: ventanas de 10 minutos, siempre con `offset: 0`, desde 30
+   minutos antes hasta 30 minutos después. Los eventos nuevos se agregan a `raw/mcp.json` con
+   los ids siguientes, deduplicados por id original, y las ventanas consultadas se actualizan
+   en `coverage`. Si aun así queda incompleto, la respuesta lo dice: "no encontré mensajes,
+   pero la consulta pudo quedar incompleta", nunca "no hubo mensajes".
 
 ## Fase 0 — Setup y chequeos
 
@@ -54,27 +63,83 @@ skill). Correr siempre `python $SKILL/scripts/<script>.py`. Si el usuario pasó 
 2. **Fuentes MCP, mediante un subagente.** Si el digest lista "Fuentes MCP a consultar",
    delegá la consulta con la herramienta Agent (`subagent_type: "general-purpose"`,
    `model: "haiku"`), así las respuestas grandes no entran a tu contexto. Pasale en el prompt:
-   la fecha, el email del usuario (`jira.email`), la ruta de destino `<state>/raw/mcp.json` y
-   estas instrucciones:
+   la fecha, el email del usuario (`jira.email`), el rango del día del digest, la ruta de
+   destino `<state>/raw/mcp.json` y estas instrucciones, completas:
    - Es **solo lectura**: no enviar, crear, modificar ni borrar nada.
-   - Cargar las herramientas con ToolSearch y consultar, acotado al día:
-     - `outlook`: `outlook_calendar_search` con `query: "*"`, `afterDateTime`/`beforeDateTime`
-       del día y `limit: 25`. Son reuniones; descartar las rechazadas o canceladas.
-     - `teams`: `chat_message_search` con `query: "*"`, `sender` = email del usuario y rango
-       del día.
-     - `sharepoint`: `sharepoint_search` con `query: "*"`, `author` = usuario y
-       `afterDateTime` = el día.
+   - Cargar las herramientas con ToolSearch y consultar cada fuente habilitada con el
+     **barrido por ventanas** que se describe abajo, no con paginación.
+   - **Barrido por ventanas.** Las búsquedas de Microsoft 365 (`chat_message_search`,
+     `outlook_calendar_search`, `sharepoint_search`) no paginan bien: con `offset` > 0
+     devuelven vacío o duplicados aunque digan `moreResults`/`nextOffset`, y una consulta
+     puede cortarse en pocos resultados sin avisar. Por eso:
+     1. **Nunca usar `offset` distinto de 0.** Nunca seguir un `nextOffset`.
+     2. Rango a cubrir: desde 1 hora antes del inicio del rango del día hasta 1 hora después
+        del final, redondeado a horas enteras (sin rango: 07:00 a 21:00). Partirlo en las
+        ventanas base de cada fuente (ver abajo). Pasar siempre `afterDateTime` y
+        `beforeDateTime` como ISO completo con hora y zona (`2026-11-12T14:00:00-03:00`): una
+        fecha sola abarca el día entero.
+     3. Cada ventana se consulta una vez con `offset: 0` y el `limit` máximo de la herramienta.
+        La ventana queda **completa** si cumple una de estas condiciones:
+        - devolvió 0 resultados;
+        - devolvió 1 o 2 resultados y ningún `nextOffset`;
+        - se partió en dos mitades, se consultó cada una, y entre las dos no apareció
+          ningún id que no estuviera en la ventana.
+     4. En cualquier otro caso (hay `nextOffset` o `moreResults`, llegó al `limit`, devolvió 3
+        o más resultados sin verificar, o las mitades trajeron ids nuevos) la ventana se parte
+        en dos mitades y se aplica el paso 3 a cada una. Así se sigue hasta que todas queden
+        completas.
+     5. Ventana mínima de 10 minutos: no se parte más. Si todavía tiene `nextOffset` o llegó
+        al `limit`, queda **incompleta** con el motivo. Si no, queda completa.
+     6. Límite de 60 consultas por fuente. Las ventanas que no se llegaron a verificar quedan
+        incompletas con motivo "límite de consultas".
+     7. Deduplicar por id del mensaje, evento o documento (si no viene id, por la URI del
+        recurso). Nunca por texto u hora.
+   - Fuentes:
+     - `teams`: `chat_message_search` con `query: "*"`, `sender` = email del usuario y
+       `limit: 25`. Ventanas base de 1 hora.
+     - `outlook`: `outlook_calendar_search` con `query: "*"`, `order: "oldest"` y `limit: 25`.
+       Ventana base: el rango entero (un día rara vez tiene más de 25 reuniones, pero si
+       llega al límite se parte igual). Son reuniones; descartar las rechazadas o canceladas.
+     - `sharepoint`: `sharepoint_search` con `query: "*"`, `author` = usuario y `limit: 50`.
+       Ventanas base de 2 horas.
      - `google_drive`: `list_recent_files` con `orderBy: "lastModifiedByMe"`,
-       `excludeContentSnippets: true` y `pageSize: 20`; solo los modificados ese día.
+       `excludeContentSnippets: true` y `pageSize: 20`. Esta herramienta pagina con
+       `nextPageToken`, que sí es confiable: seguir las páginas hasta encontrar un archivo
+       modificado por el usuario antes del inicio del día (máximo 10 páginas; si no se llega,
+       la cobertura es parcial). Quedarse con los modificados ese día. Si la fecha no es hoy,
+       la cobertura lleva la nota "solo archivos cuya última modificación propia fue ese día":
+       un archivo que se volvió a tocar después no aparece.
    - Escribir el archivo con este formato:
-     `{"source": "mcp", "events": [{"id": "outlook:1", "source": "outlook", "start": ISO, "end": ISO, "title": "...", "detail": "...", "hints": {...}, "weight": "strong|weak"}]}`.
-     Ids `outlook:N`, `teams:N` y `docs:N`. Peso `strong` para reuniones, `weak` para el resto.
-     En `detail` va como máximo una frase: asunto, participantes o nombre del documento.
-   - Responder **solo** una línea por evento (`HH:MM–HH:MM fuente título {id}`) y una línea
-     por fuente que haya fallado o no esté autenticada. Nada más.
+     ```json
+     {"source": "mcp",
+      "events": [{"id": "teams:1", "source": "teams", "start": "ISO", "end": "ISO", "title": "...",
+                  "detail": "...", "hints": {"msg_id": "..."}, "weight": "weak"}],
+      "coverage": {"teams": {"status": "partial", "queries": 31,
+                             "windows": [{"start": "ISO", "end": "ISO", "results": 4, "complete": true}],
+                             "incomplete": [{"start": "ISO", "end": "ISO", "reason": "nextOffset en ventana mínima"}],
+                             "error": null, "note": null}}}
+     ```
+     - Ids `outlook:N`, `teams:N` y `docs:N`, numerados por hora después de deduplicar. El id
+       original va en `hints.msg_id` (Teams), `hints.event_id` (Outlook) o `hints.doc_id`.
+     - Peso `strong` para reuniones, `weak` para el resto. En `detail` va como máximo una
+       frase: asunto, participantes o nombre del documento.
+     - `coverage` lleva una entrada por cada fuente consultada. `status` es `complete` (todas
+       las ventanas completas), `partial` (alguna incompleta, listada en `incomplete`) o
+       `failed` (la fuente falló o no está autenticada, con el motivo en `error`).
+       `windows` lista las ventanas finales, después de partirlas.
+   - Responder **solo** una línea por evento (`HH:MM–HH:MM fuente título {id}`) y una línea de
+     cobertura por fuente: `cobertura teams: completa (14 ventanas, 31 consultas)`,
+     `cobertura teams: PARCIAL, incompletas 14:30–14:40 (motivo)` o
+     `cobertura teams: FALLÓ (motivo)`. Nada más.
 
    Usá esa respuesta como parte de la línea de tiempo. La página también muestra esos eventos
-   como evidencia.
+   como evidencia, y `plan.py build` avisa en la página cada fuente con cobertura parcial o
+   fallida.
+3. **Cobertura parcial.** Si alguna fuente quedó parcial o falló:
+   - no afirmes que no hubo mensajes, reuniones ni documentos en un horario que esa fuente
+     no cubrió (ver la regla invariable 9);
+   - decilo en la nota de la página (`build --note`), con la fuente y los horarios
+     incompletos, para que el usuario sepa que puede faltar evidencia.
 
 ## Fase 2 — Atribución
 
@@ -92,11 +157,18 @@ Objetivo: **minutos totales por incidencia** a lo largo del día. Criterios, en 
   - lo mismo traído de máquinas remotas por SSH (fuente `remote` en el digest): los eventos
     conservan `git`, `cc` o `t3` y el título empieza con `[host]`;
   - ediciones en ERPNext y actividad en GitHub;
+  - uso de la página de revisión de este skill (fuente `jtt`): tramos en que el usuario usó la
+    página de verdad (mouse, teclado, scroll, con la pestaña visible), cortados cuando pasa un
+    rato sin uso. Es el tiempo de revisar y cargar horas, del día que se hizo, aunque la
+    revisión sea de otro día. Va a la subtarea "Gestión y comunicación" de `misc_issues`,
+    salvo que las `agent_notes` digan otra cosa. La línea `sesión del skill {id}` indica qué
+    sesión `cc` o `t3` corría el skill: su trabajo autónomo va a la misma incidencia, y el
+    rato que esperó al usuario no cuenta (no hay eventos ahí);
   - commits "reescrito (amend/rebase)" y sesiones de "actividad git" del reflog. Muestran
     trabajo continuo en una branch aunque no haya commits nuevos: su rango horario cuenta como
     trabajo en la incidencia de esa branch.
 - **Señales débiles:** navegación, mensajes de Teams y documentos.
-- **Sesiones de agente en paralelo** (cc y t3, también las remotas): la línea de tiempo marca
+- **Sesiones de agente en paralelo** (cc, t3 y jtt, también las remotas): la línea de tiempo marca
   en cada sesión sus tramos de `interacción` (los minutos previos a cada prompt tuyo), si es
   `autónoma` (sin prompts) y qué partes quedaron `tapada … por {id}`. El reparto es así:
   - el tiempo de interacción es de la incidencia de esa sesión;
@@ -160,8 +232,8 @@ Objetivo: **minutos totales por incidencia** a lo largo del día. Criterios, en 
      - `comments`: el mismo trabajo en tres niveles (`breve`, `normal` y `detallado`), con el
        formato de "Redacción de los comentarios", al final de esta fase.
      - `confidence`: alta, media o baja.
-     - `sources`: abreviaturas `git`, `gh`, `cc`, `t3`, `chrome`, `erp`, `outlook`, `teams`,
-       `docs`, `jira`.
+     - `sources`: abreviaturas `git`, `gh`, `cc`, `t3`, `jtt`, `chrome`, `erp`, `outlook`,
+       `teams`, `docs`, `jira`.
      - `evidence`: los ids de evento que lo respaldan (la página los muestra al expandir).
      - `warn`: lo que haya que destacar.
      - `confirmed`: no se pone; lo marca el usuario en la página.

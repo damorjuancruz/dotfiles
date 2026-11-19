@@ -773,6 +773,21 @@ Escribí en español, en 2 a 5 oraciones, qué se hizo y cómo quedó resuelto. 
     location.reload();
   }
 
+  // Uso real de la página (mouse, teclado, scroll) con la pestaña visible: el servidor lo anota
+  // como actividad del día, a lo sumo un aviso por minuto. Sin uso no hay avisos, así que irse o
+  // dejar la página de fondo no suma tiempo.
+  const ACTIVITY_MS = 60000;
+  let lastActivity = 0;
+  function noteActivity() {
+    if (!online || document.visibilityState !== "visible") return;
+    const now = Date.now();
+    if (now - lastActivity < ACTIVITY_MS) return;
+    lastActivity = now;
+    api("/api/activity", { method: "POST", body: { kind: "input" } }).catch(() => { lastActivity = 0; });
+  }
+  for (const type of ["pointerdown", "pointermove", "keydown", "wheel", "scroll", "input", "touchstart"])
+    document.addEventListener(type, noteActivity, { capture: true, passive: true });
+
   function connectEvents() {
     const es = new EventSource(`/api/events?t=${encodeURIComponent(TOKEN)}`);
     es.addEventListener("hello", (e) => {

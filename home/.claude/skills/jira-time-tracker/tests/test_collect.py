@@ -7,7 +7,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import collect
-from collectors import chrome, claude_code
+from collectors import chrome, claude_code, review_page
 from lib import common
 
 CFG = common.load_config(Path(__file__).resolve().parent.parent / "config.example.json")
@@ -176,6 +176,33 @@ class TestDigest(unittest.TestCase):
         collect.mark_parallel(timeline, 5)
         self.assertEqual(timeline[0]["hints"]["parallel_interaction"], ["cc:b"])
         self.assertEqual(timeline[1]["hints"]["parallel_interaction"], ["cc:a"])
+
+    def test_review_page_activity_shadows_and_links(self):
+        # Uso de la página 10:00–10:03 y 10:20 (se corta: más de 5 min sin uso). La sesión del
+        # skill (cc:skill) es la que levantó el servidor; otra sesión autónoma queda tapada.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "a.jsonl"
+            recs = [("10:00", "input"), ("10:01", "input"), ("10:02", "send"), ("10:20", "input")]
+            path.write_text("".join(json.dumps({"at": f"2026-10-05T{t}:00-03:00", "kind": k, "review_date": "2026-10-02",
+                                                "session": "abcd1234"}) + "\n" for t, k in recs)
+                            + "basura\n" + json.dumps({"at": "2026-10-06T10:00:00-03:00", "kind": "input"}) + "\n")
+            res = review_page.collect(CFG, {}, DAY, path)
+        evs = res["events"]
+        self.assertEqual([(e["start"][11:16], e["end"][11:16]) for e in evs], [("10:00", "10:03"), ("10:20", "10:21")])
+        self.assertEqual(evs[0]["detail"], "2 avisos de uso, 1 envíos")
+        self.assertIn("revisión de horas del 02/10", evs[0]["title"])
+        other = common.Event("cc", "2026-10-05T09:50:00-03:00", "2026-10-05T10:30:00-03:00", "otra",
+                             hints={"session": "ffff0000"}, id="cc:otra").to_dict()
+        skill = common.Event("cc", "2026-10-05T10:02:00-03:00", "2026-10-05T10:04:00-03:00", "skill",
+                             hints={"session": "abcd1234"}, id="cc:skill").to_dict()
+        d = collect.build_digest(DAY, CFG, {"review_page": res, "claude_code": {"events": [other, skill]}},
+                                 datetime(2026, 10, 5, 17, 42, tzinfo=TZ))
+        by_id = {e["id"]: e for e in d["timeline"]}
+        self.assertEqual([(x["start"][11:16], x["end"][11:16]) for x in by_id["cc:otra"]["hints"]["shadowed"]],
+                         [("10:00", "10:03"), ("10:20", "10:21")])
+        self.assertEqual(evs[0]["hints"]["agent_events"], ["cc:skill"])
+        text = collect.render_digest(d, TZ)
+        self.assertIn("sesión del skill cc:skill · interacción 10:00–10:03", text)
 
     def test_range_without_erpnext(self):
         d = collect.build_digest(DAY, CFG, {}, datetime(2026, 10, 5, 17, 42, tzinfo=TZ))

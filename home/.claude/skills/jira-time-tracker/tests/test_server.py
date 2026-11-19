@@ -19,7 +19,7 @@ class TestServer(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.dir = Path(self.tmp.name)
         (self.dir / "review.html").write_text('<html><body>v1<script id="jtt-data">{}</script></body></html>')
-        self.app = S.App(self.dir, "tok")
+        self.app = S.App(self.dir, "tok", activity_dir=self.dir / "activity", agent={"session": "abcd1234"})
         self.httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), S.make_handler(self.app))
         self.httpd.daemon_threads = True
         self.port = self.httpd.server_address[1]
@@ -70,6 +70,23 @@ class TestServer(unittest.TestCase):
         self.req("/api/send", "POST", {"round": 1, "action": "load", "sent": True})
         self.assertTrue(common.read_json(self.dir / S.PAGE_STATE)["sent"])
         self.assertRegex(self.log_lines()[-1], r"^\d\d:\d\d:\d\d ENVIADO ronda=1 acción=load$")
+
+    def activity(self):
+        files = list((self.dir / "activity").glob("*.jsonl"))
+        return [json.loads(ln) for f in files for ln in f.read_text().splitlines()]
+
+    def test_activity_log(self):
+        self.req("/api/activity", "POST", {"kind": "input"})
+        self.req("/api/send", "POST", {"round": 1, "action": "review", "sent": True})
+        with self.assertRaises(urllib.error.HTTPError) as cm:
+            self.req("/api/activity", "POST", {"kind": "otro"})
+        cm.exception.close()
+        recs = self.activity()
+        self.assertEqual([r["kind"] for r in recs], ["input", "send"])
+        self.assertEqual({r["review_date"] for r in recs}, {self.dir.name})
+        self.assertEqual({r["session"] for r in recs}, {"abcd1234"})
+        self.assertRegex(recs[0]["at"], r"[+-]\d\d:\d\d$")
+        self.assertFalse(any("activity" in ln for ln in self.log_lines()))  # no despierta al agente
 
     def test_ask_reply(self):
         _, out = self.req("/api/ask", "POST", {"kind": "comment", "issue": "SUP-1", "prompt": "Redactá…"})

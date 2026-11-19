@@ -82,6 +82,9 @@ DEFAULTS: dict[str, Any] = {
                 "primevideo.com", "spotify.com", "tiktok.com", "mercadolibre.com.ar",
             ],
         },
+        # Uso de la página de revisión del propio skill (ver collectors/review_page.py): un tramo
+        # se corta con más de `idle_gap_minutes` sin uso real de la página.
+        "review_page": {"enabled": True, "idle_gap_minutes": 5},
         "outlook": {"enabled": True},
         "teams": {"enabled": True},
         "sharepoint": {"enabled": True},

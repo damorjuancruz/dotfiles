@@ -4,8 +4,8 @@
   - Cada colector escribe <state>/<fecha>/raw/<fuente>.json (con sus eventos completos).
   - Las keys de Jira mencionadas por las otras fuentes se agregan como candidatas en una
     segunda pasada.
-  - Las sesiones de agente (cc, t3, también las remotas) se cruzan entre sí para el trabajo en
-    paralelo (ver mark_parallel).
+  - Las sesiones de agente (cc, t3, también las remotas) y el uso de la página de revisión del
+    skill (jtt) se cruzan entre sí para el trabajo en paralelo (ver mark_parallel).
   - <state>/<fecha>/digest.json es lo que usa plan.py.
   - Por stdout sale el digest en texto compacto: es lo único que lee el agente.
 
@@ -23,7 +23,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from collectors import chrome, claude_code, erpnext, git_local, github, jira, remote, t3_code  # noqa: E402
+from collectors import chrome, claude_code, erpnext, git_local, github, jira, remote, review_page, t3_code  # noqa: E402
 from lib import common  # noqa: E402
 
 LOCAL_COLLECTORS = {
@@ -34,10 +34,11 @@ LOCAL_COLLECTORS = {
     "t3_code": t3_code.collect,
     "remote": remote.collect,
     "chrome": chrome.collect,
+    "review_page": review_page.collect,
 }
 MCP_SOURCES = ("outlook", "teams", "sharepoint", "google_drive")
 DETAIL_CHARS = 140
-AGENT_SOURCES = ("cc", "t3")
+AGENT_SOURCES = ("cc", "t3", "jtt")
 
 
 # --------------------------------------------------------------------------- keys
@@ -64,7 +65,8 @@ def mark_parallel(timeline: list[dict], interaction_minutes: int) -> None:
     """Cruza las sesiones de agente que se pisan en el tiempo.
 
     Interacción: los `interaction_minutes` previos a cada prompt del usuario (leer la respuesta
-    y escribir). El resto del tramo de la sesión es trabajo autónomo del agente.
+    y escribir), más los tramos de `hints.activity_spans` (uso real de la página de revisión,
+    fuente jtt). El resto del tramo de la sesión es trabajo autónomo del agente.
 
     Un trabajo autónomo cuenta para su incidencia salvo cuando, en ese mismo horario, el usuario
     interactúa con otra sesión: ese tiempo queda "tapado" y es de la sesión con interacción.
@@ -81,7 +83,8 @@ def mark_parallel(timeline: list[dict], interaction_minutes: int) -> None:
             continue
         h = ev.setdefault("hints", {})
         span = [(common.parse_iso(ev["start"]), common.parse_iso(ev["end"]))]
-        inter = common.merge_spans([(t - win, t) for t in map(common.parse_iso, h.get("prompt_times", []))])
+        inter = common.merge_spans([(t - win, t) for t in map(common.parse_iso, h.get("prompt_times", []))]
+                                   + [(common.parse_iso(s), common.parse_iso(e)) for s, e in h.get("activity_spans", [])])
         agents.append((ev, span, inter))
     for ev, span, inter in agents:
         auto = common.subtract_spans(span, inter)
@@ -106,6 +109,21 @@ def mark_parallel(timeline: list[dict], interaction_minutes: int) -> None:
         h["parallel_interaction"] = parallel
 
 
+def link_review_sessions(timeline: list[dict]) -> None:
+    """Une cada tramo de uso de la página (jtt) con las sesiones del agente que corrían el skill:
+    misma sesión de Claude Code o mismo thread de T3. Lo anota en `hints.agent_events`."""
+    for ev in timeline:
+        if ev.get("source") != "jtt":
+            continue
+        h = ev.setdefault("hints", {})
+        ids = [o["id"] for o in timeline if o.get("source") in ("cc", "t3") and (
+            (h.get("session") and (o.get("hints") or {}).get("session") == h["session"])
+            or (h.get("t3_thread") and h["t3_thread"] in ((o.get("hints") or {}).get("t3_thread"),
+                                                          (o.get("hints") or {}).get("thread"))))]
+        if ids:
+            h["agent_events"] = ids
+
+
 def build_digest(day: date, cfg: dict, results: dict[str, dict], now: datetime) -> dict:
     tz = common.get_tz(cfg)
     erp = results.get("erpnext") or {}
@@ -118,6 +136,7 @@ def build_digest(day: date, cfg: dict, results: dict[str, dict], now: datetime) 
     timeline = sorted((ev for res in results.values() for ev in res.get("events", [])),
                       key=lambda e: (e["start"], e["source"]))
     mark_parallel(timeline, cfg["rules"]["interaction_minutes"])
+    link_review_sessions(timeline)
     return {
         "date": day.isoformat(),
         "generated_at": now.astimezone(tz).isoformat(timespec="seconds"),
@@ -255,6 +274,8 @@ def render_digest(d: dict, tz) -> str:
             tags.append(f"doc={h['doctype']} {h.get('docname', '')}".strip())
         if h.get("current"):
             tags.append("SESIÓN ACTUAL")
+        if h.get("agent_events"):
+            tags.append(f"sesión del skill {','.join(h['agent_events'][:4])}")
         if ev["source"] in AGENT_SOURCES:
             tags += _parallel_tags(h, tz)
         detail = f" | {' '.join(ev['detail'].split())[:DETAIL_CHARS]}" if ev.get("detail") else ""

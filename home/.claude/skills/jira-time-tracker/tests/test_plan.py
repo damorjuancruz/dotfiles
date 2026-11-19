@@ -609,3 +609,46 @@ class TestExpandAndCli(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMcpCoverage(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.raw = Path(self.tmp.name)
+        self.tz = common.get_tz(CFG)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def write(self, data):
+        common.write_json(self.raw / "mcp.json", data)
+
+    def test_sin_mcp_json_no_avisa(self):
+        self.assertEqual(P.mcp_coverage_warnings(self.raw, self.tz), [])
+
+    def test_formato_viejo_avisa(self):
+        self.write({"source": "mcp", "events": []})
+        out = P.mcp_coverage_warnings(self.raw, self.tz)
+        self.assertEqual(len(out), 1)
+        self.assertIn("sin datos de cobertura", out[0])
+
+    def test_completa_parcial_y_fallida(self):
+        self.write({"source": "mcp", "events": [], "coverage": {
+            "outlook": {"status": "complete", "windows": []},
+            "teams": {"status": "partial", "incomplete": [
+                {"start": "2026-10-05T17:30:00Z", "end": "2026-10-05T17:40:00Z", "reason": "moreResults en ventana mínima"}]},
+            "sharepoint": {"status": "failed", "error": "no autenticado"},
+            "google_drive": {"status": "complete", "note": "solo la última modificación propia de cada archivo"},
+        }})
+        out = P.mcp_coverage_warnings(self.raw, self.tz)
+        self.assertEqual(out, [
+            "Cobertura de google_drive: solo la última modificación propia de cada archivo",
+            "Cobertura de sharepoint: no se pudo consultar (no autenticado).",
+            "Cobertura parcial de teams: pueden faltar eventos en 14:30–14:40 (moreResults en ventana mínima).",
+        ])
+
+    def test_eventos_se_siguen_leyendo(self):
+        self.write({"source": "mcp", "coverage": {}, "events": [
+            {"id": "teams:1", "source": "teams", "start": "2026-10-05T17:55:00Z", "end": "2026-10-05T17:55:00Z",
+             "title": "Mensaje a Elias", "hints": {"msg_id": "abc"}, "weight": "weak"}]})
+        self.assertIn("teams:1", P.load_raw_events(self.raw))
